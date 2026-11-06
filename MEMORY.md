@@ -82,5 +82,8 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    Live: server balas (RPC 129 tercatat), total RPC 15→23 (id baru 17/19/
    22/67/162), sesi hidup, part bersih tanpa kick/ban. Test assert
    spawn-survived + spawn-state — hijau.
-3. Bridge chat-only (kirim/terima chat teks) — tonggak "main teks".
+3. ~~Bridge chat-only (kirim/terima chat teks) — tonggak "main teks".~~
+   SELESAI 2026-11-06: `port/net/chat.h` (codec RPC 101/93 + CP1251) +
+   `test_chat` hijau. Live: kirim "halo dari native" → tercatat di server
+   log; terima 5 baris welcome gungame (warna terdecode). `ctest 6/6`.
 4. On-foot sync 20Hz → glue SAU (butuh Unity editor) → vehicle/textdraw.
