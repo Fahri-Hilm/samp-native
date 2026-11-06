@@ -73,7 +73,10 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
 
 ## Langkah berikut (saat lanjut)
 
-1. Decode balasan RPC 128 (outcome + `PLAYER_SPAWN_INFO`) di `HandshakeClient`.
+1. ~~Decode balasan RPC 128 (outcome + `PLAYER_SPAWN_INFO`) di `HandshakeClient`.~~
+   SELESAI 2026-11-06: `OnRequestClass` + `SpawnInfo` pack(1)/46B, live vs
+   open.mp → outcome=1, skin=0, pos=(-1291.7, 2513.8, 87.1), rot=355.4.
+   Test assert outcome/finite/skin-range — hijau.
 2. Kirim `RequestSpawn`(129) + `Spawn`(52) → verifikasi spawn di log server.
 3. Bridge chat-only (kirim/terima chat teks) — tonggak "main teks".
 4. On-foot sync 20Hz → glue SAU (butuh Unity editor) → vehicle/textdraw.

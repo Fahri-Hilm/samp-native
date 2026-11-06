@@ -3,6 +3,7 @@
 // run one first, e.g. ~/Projects/omp-server-ref/Server/omp-server.
 // Env: SAMP_TEST_HOST (default 127.0.0.1), SAMP_TEST_PORT (default 7777).
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
@@ -48,7 +49,8 @@ int main() {
             c.RequestClass(0);
             classAsked = true;
         }
-        if (classAsked && c.rpcTotal() >= 1) break;
+        if (classAsked && c.rpcTotal() >= 1
+            && opensamp::net::HandshakeClient::s_spawnReceived) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }
 
@@ -56,6 +58,17 @@ int main() {
     check(classAsked, "class-requested");
     std::printf("playerId=%u rpcs=%u\n", c.playerId(), c.rpcTotal());
     check(c.rpcTotal() >= 1, "server-talked-back");
+    check(opensamp::net::HandshakeClient::s_spawnReceived, "spawn-info");
+    check(opensamp::net::HandshakeClient::s_spawnOutcome == 1, "outcome-ok");
+    {
+        const auto& sp = opensamp::net::HandshakeClient::s_spawn;
+        const bool finite = std::isfinite(sp.pos[0]) && std::isfinite(sp.pos[1])
+            && std::isfinite(sp.pos[2]) && std::isfinite(sp.rotation);
+        std::printf("  skin=%d pos=(%.1f, %.1f, %.1f) rot=%.1f team=%u\n",
+            sp.skin, sp.pos[0], sp.pos[1], sp.pos[2], sp.rotation, sp.team);
+        check(finite, "spawn-finite");
+        check(sp.skin >= 0 && sp.skin <= 311, "spawn-skin-range");
+    }
     for (int i = 0; i < 256; ++i)
         if (opensamp::net::HandshakeClient::s_rpcHits[i])
             std::printf("  rpc id=%d count=%u\n", i,

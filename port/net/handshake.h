@@ -156,16 +156,54 @@ public:
         static void handler(RPCParameters*) { s_rpcHits[Id]++; }
     };
 
+    // PLAYER_SPAWN_INFO wire layout (pack(1), 46 bytes — mirrors upstream).
+#pragma pack(push, 1)
+    struct SpawnInfo {
+        unsigned char team;
+        int skin;
+        unsigned char unk;
+        float pos[3];
+        float rotation;
+        int weapons[3];
+        int weaponAmmo[3];
+    };
+#pragma pack(pop)
+    static_assert(sizeof(SpawnInfo) == 46, "spawn wire layout");
+
+    static inline unsigned char s_spawnOutcome = 0;
+    static inline SpawnInfo s_spawn{};
+    static inline bool s_spawnReceived = false;
+    static inline int s_rpcRequestClass = 128;
+
+    static void OnRequestClass(RPCParameters* p)
+    {
+        s_rpcHits[128]++;
+        if (!p || !p->input) return;
+        RakNet::BitStream bs(p->input,
+            (p->numberOfBitsOfData / 8) + 1, false);
+        unsigned char outcome = 0;
+        if (!bs.Read(outcome)) return;
+        s_spawnOutcome = outcome;
+        if (outcome) {
+            SpawnInfo tmp{};
+            if (!bs.Read(reinterpret_cast<char*>(&tmp), sizeof(tmp))) return;
+            s_spawn = tmp;
+            s_spawnReceived = true;
+        }
+    }
+
     template <std::size_t... I>
     static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
     {
-        (c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler), ...);
+        // 128 has a dedicated decoder (OnRequestClass), skip the counter thunk.
+        ((I != 128 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
     }
 
     void RegisterAllRpcs()
     {
         if (!client_) return;
         for (int i = 0; i < 256; ++i) s_rpcIds[i] = i;
+        client_->RegisterAsRemoteProcedureCall(&s_rpcRequestClass, &OnRequestClass);
         RegisterRange(client_, std::make_index_sequence<256>{});
     }
 
@@ -183,6 +221,9 @@ public:
     {
         Shutdown();
         for (unsigned& h : s_rpcHits) h = 0;
+        s_spawnOutcome = 0;
+        s_spawn = SpawnInfo{};
+        s_spawnReceived = false;
         std::snprintf(nick_, sizeof(nick_), "%s", nick ? nick : "Native");
         client_ = RakNetworkFactory::GetRakClientInterface();
         if (!client_) return false;
