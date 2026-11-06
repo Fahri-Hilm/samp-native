@@ -27,6 +27,7 @@
 #include "port/net/chat.h"
 #include "port/net/sync.h"
 #include "port/net/sync_in.h"
+#include "port/net/vehicle.h"
 
 #include <map>
 #include <vector>
@@ -191,6 +192,7 @@ public:
     static inline int s_rpcClientMessage = 93;
     std::vector<ChatLine> chatLines_;
     std::map<unsigned short, RemotePlayer> remotes_;
+    std::map<unsigned short, RemoteVehicle> remoteVehicles_;
     unsigned syncInCount_ = 0;
 
     static void OnClientMessage(RPCParameters* p)
@@ -306,6 +308,10 @@ public:
                     remotes_[rp.id] = rp;
                     ++syncInCount_;
                 }
+            } else if (pid == 200 && pkt->length > 1) {
+                RemoteVehicle rv{};
+                if (decodeVehicleSync(pkt->data, pkt->length * 8, rv))
+                    remoteVehicles_[rv.playerId] = rv;
             }
             else if (pid == ID_CONNECTION_ATTEMPT_FAILED ||
                      pid == ID_CONNECTION_BANNED ||
@@ -364,6 +370,15 @@ public:
         if (!client_) return false;
         RakNet::BitStream bs;
         encodeAimSend(a, bs);
+        return client_->Send(&bs, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
+    }
+
+    bool SendVehicle(unsigned short vehicleId, const float quat[4],
+                     const float pos[3], const float vel[3], float carHealth)
+    {
+        if (!client_) return false;
+        RakNet::BitStream bs;
+        encodeVehicleSend(vehicleId, quat, pos, vel, carHealth, bs);
         return client_->Send(&bs, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
     }
 

@@ -50,6 +50,12 @@ target_include_directories(test_sync_in PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME sync_in COMMAND test_sync_in)
 
+add_executable(test_vehicle tests/test_vehicle.cpp)
+target_link_libraries(test_vehicle PRIVATE samp_portable raknet)
+target_include_directories(test_vehicle PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME vehicle COMMAND test_vehicle)
+
 add_executable(test_handshake tests/test_handshake.cpp)
 target_link_libraries(test_handshake PRIVATE samp_portable raknet)
 target_include_directories(test_handshake PRIVATE
