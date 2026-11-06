@@ -9,6 +9,14 @@ add_library(samp_portable INTERFACE)
 target_include_directories(samp_portable INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 enable_testing()
+
+# --- sampraknet (vendored in research clone; built, not copied) ---
+# Linux-port delta lives in the clone (see RISET.md): SEH guard in
+# RakPeer.cpp + forced `-include cstdint` below (GCC 16 vs MSVC).
+set(SAMPRAKNET_DIR /home/iqaruz/Projects/opensamp-riset/native/vendor/sampraknet)
+add_subdirectory(${SAMPRAKNET_DIR} ${CMAKE_BINARY_DIR}/vendor/sampraknet)
+target_compile_options(raknet PRIVATE -include cstdint)
+
 add_executable(test_encoding tests/test_encoding.cpp)
 target_link_libraries(test_encoding PRIVATE samp_portable)
 add_test(NAME encoding
@@ -17,3 +25,9 @@ add_test(NAME encoding
 add_executable(test_color tests/test_color.cpp)
 target_link_libraries(test_color PRIVATE samp_portable)
 add_test(NAME color COMMAND test_color)
+
+add_executable(test_netlink tests/test_netlink.cpp)
+target_link_libraries(test_netlink PRIVATE raknet)
+target_include_directories(test_netlink PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME netlink COMMAND test_netlink)
