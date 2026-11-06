@@ -31,3 +31,15 @@ target_link_libraries(test_netlink PRIVATE raknet)
 target_include_directories(test_netlink PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME netlink COMMAND test_netlink)
+
+add_executable(test_handshake tests/test_handshake.cpp)
+target_link_libraries(test_handshake PRIVATE samp_portable raknet)
+target_include_directories(test_handshake PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME handshake COMMAND test_handshake)
+
+add_executable(test_loopback tests/test_loopback.cpp)
+target_link_libraries(test_loopback PRIVATE raknet)
+target_include_directories(test_loopback PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME loopback COMMAND test_loopback)
