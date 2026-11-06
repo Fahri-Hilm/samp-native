@@ -118,6 +118,27 @@ int main() {
     check(seesOther(b, a), "b-sees-a");
     check(a.roster().count(b.playerId()) > 0, "a-roster-has-b");
     check(b.roster().count(a.playerId()) > 0, "b-roster-has-a");
+
+    // Chat relay both ways with sender ids.
+    check(a.SendChat("hi B from A"), "a-chat");
+    check(b.SendChat("hi A from B"), "b-chat");
+    const auto rdeadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(8);
+    bool aGot = false, bGot = false;
+    while (std::chrono::steady_clock::now() < rdeadline) {
+        pumpBoth(a, b);
+        if (a.failed() || b.failed()) break;
+        for (const auto& [sid, txt] : a.relayLines()) {
+            if (sid == b.playerId() && txt == "hi A from B") bGot = true;
+        }
+        for (const auto& [sid, txt] : b.relayLines()) {
+            if (sid == a.playerId() && txt == "hi B from A") aGot = true;
+        }
+        if (aGot && bGot) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    }
+    check(aGot, "a-got-b-chat");
+    check(bGot, "b-got-a-chat");
     // NOTE: open.mp doesn't send names on the wire in this flow
     // (no RPC 137, no name strings in any RPC payload — verified by dump).
     // Names arrive via chat text / scoreboard instead.

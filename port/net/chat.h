@@ -52,4 +52,31 @@ inline bool encodeChatSend(std::string_view utf8, RakNet::BitStream& out)
     if (n > 0) out.Write(payload.data(), n);
     return true;
 }
+
+// Incoming player chat relay (server rebroadcast, RPC id 101):
+// u16 senderId + u8 len + CP1251 bytes (no color).
+inline bool decodeChatRelay(const unsigned char* data, unsigned bitLen,
+                            unsigned short& senderOut, std::string& textOut)
+{
+    if (!data || bitLen < 8 + 16 + 8) return false;
+    RakNet::BitStream bs(const_cast<unsigned char*>(data), bitLen / 8 + 1,
+                         false);
+    // NOTE: no id byte to skip — HandleRPCPacket strips the RPC header;
+    // input starts at the sender id (same as upstream Chat()).
+    unsigned short sender = 0;
+    unsigned char n = 0;
+    if (!bs.Read(sender)) return false;
+    if (sender >= 1000) return false;
+    if (!bs.Read(n)) return false;
+    if (n == 0) {
+        senderOut = sender;
+        textOut.clear();
+        return true;
+    }
+    std::string raw(n, '\0');
+    if (!bs.Read(&raw[0], n)) return false;
+    senderOut = sender;
+    textOut = util::cp1251_to_utf8(std::string_view(raw.data(), n));
+    return true;
+}
 } // namespace opensamp::net

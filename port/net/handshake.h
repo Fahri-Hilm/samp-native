@@ -325,8 +325,21 @@ public:
     template <std::size_t... I>
     static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
     {
-        // 32/93/128/137/163 have dedicated decoders, skip the counter thunks.
-        ((I != 32 && I != 93 && I != 128 && I != 137 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
+        // 32/93/101/128/137/163 have dedicated decoders, skip thunks.
+        ((I != 32 && I != 93 && I != 101 && I != 128 && I != 137 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
+    }
+
+    std::vector<std::pair<unsigned short, std::string>> relayLines_;
+
+    static void OnRelay(RPCParameters* p)
+    {
+        if (t_route) t_route->rpcHits_[101]++;
+        if (!t_route || !p || !p->input) return;
+        unsigned short sender = 0;
+        std::string text;
+        if (!decodeChatRelay(p->input, p->numberOfBitsOfData, sender, text))
+            return;
+        t_route->relayLines_.emplace_back(sender, std::move(text));
     }
 
     void RegisterAllRpcs()
@@ -335,10 +348,15 @@ public:
         for (int i = 0; i < 256; ++i) s_rpcIds[i] = i;
         client_->RegisterAsRemoteProcedureCall(&s_rpcRequestClass, &OnRequestClass);
         client_->RegisterAsRemoteProcedureCall(&s_rpcClientMessage, &OnClientMessage);
+        client_->RegisterAsRemoteProcedureCall(&s_rpcChat, &OnRelay);
         client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerAdd, &OnWorldPlayerAdd);
         client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerRemove, &OnWorldPlayerRemove);
         client_->RegisterAsRemoteProcedureCall(&s_rpcServerJoin, &OnServerJoin);
         RegisterRange(client_, std::make_index_sequence<256>{});
+    }
+    const std::vector<std::pair<unsigned short, std::string>>&
+    relayLines() const {
+        return relayLines_;
     }
     const std::map<unsigned short, RosterEntry>& roster() const {
         return roster_;
@@ -373,6 +391,7 @@ public:
         spawn_ = SpawnInfo{};
         spawnReceived_ = false;
         chatLines_.clear();
+        relayLines_.clear();
         roster_.clear();
         remotes_.clear();
         syncInCount_ = 0;

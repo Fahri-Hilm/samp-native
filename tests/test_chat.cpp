@@ -15,6 +15,7 @@ void check(bool ok, const char* what) {
 int main() {
     using opensamp::net::ChatLine;
     using opensamp::net::decodeClientMessage;
+    using opensamp::net::decodeChatRelay;
     using opensamp::net::encodeChatSend;
 
     // 1. Decode: color + "Hi {FF0000}red" (CP1251 == ASCII here).
@@ -53,6 +54,25 @@ int main() {
         ChatLine line;
         check(!decodeClientMessage(bs.GetData(), bs.GetNumberOfBitsUsed(), line),
               "reject-overlong");
+    }
+    // Relay: sender id + text, no color.
+    {
+        RakNet::BitStream br;
+        br.Write(static_cast<unsigned short>(1));
+        const std::string hi = "hi B";
+        br.Write(static_cast<unsigned char>(hi.size()));
+        br.Write(hi.data(), static_cast<unsigned>(hi.size()));
+        unsigned short sender = 99;
+        std::string text;
+        check(decodeChatRelay(br.GetData(), br.GetNumberOfBitsUsed(), sender,
+                              text),
+              "relay-ok");
+        check(sender == 1 && text == "hi B", "relay-fields");
+    }
+    {
+        unsigned short sender = 0;
+        std::string text;
+        check(!decodeChatRelay(nullptr, 0, sender, text), "relay-null");
     }
     {
         ChatLine line;
