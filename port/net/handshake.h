@@ -142,7 +142,7 @@ inline int GenGpci(char buf[64], std::uint32_t factor)
 class HandshakeClient
 {
 public:
-    enum class State { Idle, Connecting, Accepted, JoinSent, ClassRequested };
+    enum class State { Idle, Connecting, Accepted, JoinSent, ClassRequested, SpawnRequested };
 
     // Per-RPC-ID call counts. Static: RakNet wants free functions.
     // Incoming RPCs otherwise vanish inside HandleRPCPacket (see
@@ -174,6 +174,8 @@ public:
     static inline SpawnInfo s_spawn{};
     static inline bool s_spawnReceived = false;
     static inline int s_rpcRequestClass = 128;
+    static inline int s_rpcRequestSpawn = 129;
+    static inline int s_rpcSpawn = 52;
 
     static void OnRequestClass(RPCParameters* p)
     {
@@ -278,6 +280,17 @@ public:
         client_->RPC(&g_RpcRequestClass, &bs, HIGH_PRIORITY, RELIABLE,
                      0, false, UNASSIGNED_NETWORK_ID, nullptr);
         state_ = State::ClassRequested;
+    }
+
+    void RequestSpawn()
+    {
+        if (!client_ || !s_spawnReceived) return;
+        RakNet::BitStream bsEmpty;
+        client_->RPC(&s_rpcRequestSpawn, &bsEmpty, HIGH_PRIORITY, RELIABLE,
+                     0, false, UNASSIGNED_NETWORK_ID, nullptr);
+        client_->RPC(&s_rpcSpawn, &bsEmpty, HIGH_PRIORITY, RELIABLE,
+                     0, false, UNASSIGNED_NETWORK_ID, nullptr);
+        state_ = State::SpawnRequested;
     }
 
     void Shutdown()

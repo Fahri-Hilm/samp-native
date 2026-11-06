@@ -50,13 +50,31 @@ int main() {
             classAsked = true;
         }
         if (classAsked && c.rpcTotal() >= 1
-            && opensamp::net::HandshakeClient::s_spawnReceived) break;
+            && opensamp::net::HandshakeClient::s_spawnReceived) {
+            c.RequestSpawn();
+            break;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }
 
     check(!c.failed(), "no-failure");
     check(classAsked, "class-requested");
-    std::printf("playerId=%u rpcs=%u\n", c.playerId(), c.rpcTotal());
+    // Post-spawn: hold the connection, server should keep talking
+    // (world/mark/sync RPCs). Assert the link survives sending Spawn.
+    {
+        const auto deadline2 =
+            std::chrono::steady_clock::now() + std::chrono::seconds(6);
+        while (std::chrono::steady_clock::now() < deadline2) {
+            c.PollOnce();
+            if (c.failed()) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        }
+        check(!c.failed(), "spawn-survived");
+        check(c.state() ==
+            opensamp::net::HandshakeClient::State::SpawnRequested,
+            "spawn-state");
+        std::printf("  rpcs-after-spawn=%u\n", c.rpcTotal());
+    }
     check(c.rpcTotal() >= 1, "server-talked-back");
     check(opensamp::net::HandshakeClient::s_spawnReceived, "spawn-info");
     check(opensamp::net::HandshakeClient::s_spawnOutcome == 1, "outcome-ok");

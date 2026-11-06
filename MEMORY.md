@@ -77,6 +77,10 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    SELESAI 2026-11-06: `OnRequestClass` + `SpawnInfo` pack(1)/46B, live vs
    open.mp → outcome=1, skin=0, pos=(-1291.7, 2513.8, 87.1), rot=355.4.
    Test assert outcome/finite/skin-range — hijau.
-2. Kirim `RequestSpawn`(129) + `Spawn`(52) → verifikasi spawn di log server.
+2. ~~Kirim `RequestSpawn`(129) + `Spawn`(52) → verifikasi spawn di log server.~~
+   SELESAI 2026-11-06: `RequestSpawn()` kirim 129+52 kosong (mirip upstream).
+   Live: server balas (RPC 129 tercatat), total RPC 15→23 (id baru 17/19/
+   22/67/162), sesi hidup, part bersih tanpa kick/ban. Test assert
+   spawn-survived + spawn-state — hijau.
 3. Bridge chat-only (kirim/terima chat teks) — tonggak "main teks".
 4. On-foot sync 20Hz → glue SAU (butuh Unity editor) → vehicle/textdraw.
