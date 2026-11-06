@@ -32,5 +32,8 @@ Gabungan MIT+GPL = distribusi ikut GPL. Pakai pribadi: aman.
 1. Pengguna jalan SAU grafis sekali, pilih `game_dir` pack PS2 → konfirmasi dunia render (GPU real, bukan nographics).
 2. Petakan lapisan net SAU (titik glue) dari sumbernya.
 3. Handshake/auth SAMP portabel (uji lawan server lokal open.mp).
+   - SELESAI 2026-11-06 fondasi: `libraknet.a` native terbuild (commit `7b39231`,
+     test `netlink` BitStream + RakClient create/destroy hijau, **ctest 3/3**).
+     Delta port: SEH guard `RakPeer.cpp` + `-include cstdint` (tercatat di clone).
 4. Bridge chat-only dulu (teks jalan sebelum 3D sync).
 5. On-foot sync 20Hz → vehicle → textdraw (urutan sama seperti upstream OpenSamp).
