@@ -91,3 +91,9 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    `test_sync` hijau. Live: 196 sync/10s dari titik spawn, server balas
    RPC 67 x197, sesi hidup, part bersih. Glue SAU (Unity editor) sisa.
    SELESAI aim 2026-11-06: `AimData` 31B (zoom/weapon 1 byte) + live 196/10s.
+   SELESAI lihat-pemain 2026-11-06: `port/net/sync_in.h` decode kompresi
+   (quat/vector/nibble HP) + `test_twoplayer`: A(id0)↔B(id1) saling lihat
+   di posisi spawn. `ctest` 9 test.
+   SELESAI peta glue 2026-11-06: `GLUE.md` — 6 seam SAU (chat in/out,
+   spawn lokal, ped remote, kendaraan, backend). Butuh Unity editor,
+   belum ada di mesin ini.
