@@ -329,6 +329,14 @@ public:
         return client_->Send(&bs, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
     }
 
+    bool SendAim(const AimData& a)
+    {
+        if (!client_) return false;
+        RakNet::BitStream bs;
+        encodeAimSend(a, bs);
+        return client_->Send(&bs, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
+    }
+
     void Shutdown()
     {
         if (client_)

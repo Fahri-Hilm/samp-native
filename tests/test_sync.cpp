@@ -15,7 +15,10 @@ void check(bool ok, const char* what) {
 
 int main() {
     using opensamp::net::OnFootData;
+    using opensamp::net::AimData;
     using opensamp::net::encodeOnFootSend;
+    using opensamp::net::encodeAimSend;
+    using opensamp::net::makeIdleAim;
     using opensamp::net::makeIdleOnFoot;
 
     check(sizeof(OnFootData) == 68, "wire-size");
@@ -42,6 +45,18 @@ int main() {
         check(std::fabs(d.quat[2] - s) < 1e-6f, "yaw-sin");
         check(std::fabs(d.quat[3] - c) < 1e-6f, "yaw-cos");
         check(d.quat[0] == 0.0f && d.quat[1] == 0.0f, "yaw-xy");
+    }
+
+    // Aim: 31 bytes, id 203, zoom/weapon share one wire byte.
+    {
+        check(sizeof(AimData) == 31, "aim-size");
+        AimData a = makeIdleAim(1.0f, 2.0f, 3.0f);
+        a.setZoomWeapon(63, 2);
+        check(a.extZoomAndWeapon == 0xBF, "aim-zoomweapon-pack");
+        RakNet::BitStream bs;
+        check(encodeAimSend(a, bs), "aim-encode-ok");
+        check(bs.GetNumberOfBytesUsed() == 1 + 31, "aim-encode-len");
+        check(bs.GetData()[0] == 203, "aim-encode-id");
     }
 
     if (fails == 0) std::puts("ALL PASS");

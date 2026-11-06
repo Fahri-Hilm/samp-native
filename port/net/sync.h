@@ -14,6 +14,7 @@
 namespace opensamp::net
 {
 inline constexpr unsigned char kMsgPlayerSync = 207;
+inline constexpr unsigned char kMsgAimSync = 203;
 inline constexpr int kOnFootSendRateMs = 50;
 
 #pragma pack(push, 1)
@@ -55,6 +56,44 @@ inline bool encodeOnFootSend(const OnFootData& d, RakNet::BitStream& out)
 {
     out.Write(kMsgPlayerSync);
     out.Write(reinterpret_cast<const char*>(&d), sizeof(d));
+    return true;
+}
+
+#pragma pack(push, 1)
+struct AimData {
+    std::uint8_t camMode = 4;
+    float aimF1[3] = {};
+    float aimPos[3] = {};
+    float aimZ = 0.0f;
+    // Wire: ONE byte, low 6 bits = camExtZoom (0-63), high 2 bits = weaponState.
+    std::uint8_t extZoomAndWeapon = 0;
+    std::uint8_t unk = 0;
+
+    void setZoomWeapon(std::uint8_t zoom6, std::uint8_t weapon2)
+    {
+        extZoomAndWeapon = static_cast<std::uint8_t>(
+            ((weapon2 & 0x3) << 6) | (zoom6 & 0x3F));
+    }
+};
+#pragma pack(pop)
+static_assert(sizeof(AimData) == 31, "aim wire size");
+
+inline AimData makeIdleAim(float x, float y, float z)
+{
+    AimData a{};
+    a.aimF1[0] = 0.1f;
+    a.aimF1[1] = 0.1f;
+    a.aimF1[2] = 0.1f;
+    a.aimPos[0] = x;
+    a.aimPos[1] = y;
+    a.aimPos[2] = z;
+    return a;
+}
+
+inline bool encodeAimSend(const AimData& a, RakNet::BitStream& out)
+{
+    out.Write(kMsgAimSync);
+    out.Write(reinterpret_cast<const char*>(&a), sizeof(a));
     return true;
 }
 } // namespace opensamp::net

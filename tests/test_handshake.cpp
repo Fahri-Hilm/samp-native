@@ -88,7 +88,9 @@ int main() {
         opensamp::net::OnFootData idle =
             opensamp::net::makeIdleOnFoot(sp.pos[0], sp.pos[1], sp.pos[2],
                                           sp.rotation);
-        unsigned sent = 0;
+        opensamp::net::AimData aim =
+            opensamp::net::makeIdleAim(sp.pos[0], sp.pos[1], sp.pos[2]);
+        unsigned sent = 0, sentAim = 0;
         const auto deadline3 =
             std::chrono::steady_clock::now() + std::chrono::seconds(10);
         auto next =
@@ -99,15 +101,17 @@ int main() {
             const auto now = std::chrono::steady_clock::now();
             if (now >= next) {
                 if (c.SendOnFoot(idle)) ++sent;
+                if (c.SendAim(aim)) ++sentAim;
                 next = now + std::chrono::milliseconds(
                     opensamp::net::kOnFootSendRateMs);
             } else {
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
         }
-        std::printf("  onfoot-sent=%u\n", sent);
+        std::printf("  onfoot-sent=%u aim-sent=%u\n", sent, sentAim);
         check(!c.failed(), "sync-survived");
         check(sent >= 150, "sync-rate"); // 10 s at 20 Hz = 200, slack 150
+        check(sentAim >= 150, "aim-rate");
     }
     {
         const auto& lines = opensamp::net::HandshakeClient::s_chatLines;
