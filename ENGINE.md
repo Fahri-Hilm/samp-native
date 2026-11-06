@@ -36,4 +36,12 @@ Gabungan MIT+GPL = distribusi ikut GPL. Pakai pribadi: aman.
      test `netlink` BitStream + RakClient create/destroy hijau, **ctest 3/3**).
      Delta port: SEH guard `RakPeer.cpp` + `-include cstdint` (tercatat di clone).
 4. Bridge chat-only dulu (teks jalan sebelum 3D sync).
+   - SELESAI fondasi join 2026-11-06: `HandshakeClient` connect + auth +
+     `ClientJoin` + `RequestClass` lawan open.mp 1.6.7 lokal → server
+     kirim 15 RPC (id 12, 60, 69, 72, 93, 128, 135, 139, 157, 158).
+     Temuan penting: RPC masuk dimakan `HandleRPCPacket` bila tak ada
+     handler terdaftar — client wajib `RegisterAllRpcs()`.
+   - Port fix RakNet di Linux (clone riset, delta 40 baris): `delete[]`
+     (DeallocatePacket + buffered send), ctor `DataPlusPtr`, dtor/Clear
+     `SingleProducerConsumer`, + print diagnostik env-gated.
 5. On-foot sync 20Hz → vehicle → textdraw (urutan sama seperti upstream OpenSamp).

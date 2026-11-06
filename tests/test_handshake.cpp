@@ -18,6 +18,14 @@ void check(bool ok, const char* what) {
 } // namespace
 
 int main() {
+    // Live server test: opt-in via SAMP_TEST_LIVE=1 so plain `ctest`
+    // stays green without a server. Server must speak 0.3.7
+    // (classic samp03svr or open.mp with allow_037_clients).
+    const char* live = std::getenv("SAMP_TEST_LIVE");
+    if (!live || std::string(live) != "1") {
+        std::puts("SKIP (set SAMP_TEST_LIVE=1 with a server running)");
+        return 0;
+    }
     const char* host = std::getenv("SAMP_TEST_HOST");
     const char* port = std::getenv("SAMP_TEST_PORT");
     const unsigned short p =
