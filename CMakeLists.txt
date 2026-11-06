@@ -13,3 +13,7 @@ add_executable(test_encoding tests/test_encoding.cpp)
 target_link_libraries(test_encoding PRIVATE samp_portable)
 add_test(NAME encoding
   COMMAND test_encoding ${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors/cp1251.txt)
+
+add_executable(test_color tests/test_color.cpp)
+target_link_libraries(test_color PRIVATE samp_portable)
+add_test(NAME color COMMAND test_color)
