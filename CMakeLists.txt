@@ -73,3 +73,8 @@ target_link_libraries(test_loopback PRIVATE raknet)
 target_include_directories(test_loopback PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME loopback COMMAND test_loopback)
+
+add_executable(chatcli port/cli/chatcli.cpp)
+target_link_libraries(chatcli PRIVATE samp_portable raknet)
+target_include_directories(chatcli PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
