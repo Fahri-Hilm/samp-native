@@ -40,14 +40,18 @@ int main() {
             c.RequestClass(0);
             classAsked = true;
         }
-        if (classAsked && c.rpcCount() >= 1) break;
+        if (classAsked && c.rpcTotal() >= 1) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
     }
 
     check(!c.failed(), "no-failure");
     check(classAsked, "class-requested");
-    std::printf("playerId=%u rpcs=%u\n", c.playerId(), c.rpcCount());
-    check(c.rpcCount() >= 1, "server-talked-back");
+    std::printf("playerId=%u rpcs=%u\n", c.playerId(), c.rpcTotal());
+    check(c.rpcTotal() >= 1, "server-talked-back");
+    for (int i = 0; i < 256; ++i)
+        if (opensamp::net::HandshakeClient::s_rpcHits[i])
+            std::printf("  rpc id=%d count=%u\n", i,
+                opensamp::net::HandshakeClient::s_rpcHits[i]);
     c.Shutdown();
 
     if (fails == 0) std::puts("ALL PASS");

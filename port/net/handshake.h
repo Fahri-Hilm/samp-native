@@ -14,6 +14,7 @@
 #include <cstring>
 #include <random>
 #include <string>
+#include <utility>
 
 #include "RakClientInterface.h"
 #include "RakNetworkFactory.h"
@@ -143,12 +144,45 @@ class HandshakeClient
 public:
     enum class State { Idle, Connecting, Accepted, JoinSent, ClassRequested };
 
+    // Per-RPC-ID call counts. Static: RakNet wants free functions.
+    // Incoming RPCs otherwise vanish inside HandleRPCPacket (see
+    // UNDEFINED_RPC_INDEX drop) — that is why an unregistered client
+    // "hears nothing" after joining.
+    static inline unsigned s_rpcHits[256] = {};
+    static inline int s_rpcIds[256] = {};
+
+    template <unsigned Id>
+    struct Thunk {
+        static void handler(RPCParameters*) { s_rpcHits[Id]++; }
+    };
+
+    template <std::size_t... I>
+    static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
+    {
+        (c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler), ...);
+    }
+
+    void RegisterAllRpcs()
+    {
+        if (!client_) return;
+        for (int i = 0; i < 256; ++i) s_rpcIds[i] = i;
+        RegisterRange(client_, std::make_index_sequence<256>{});
+    }
+
+    unsigned rpcTotal() const
+    {
+        unsigned n = 0;
+        for (unsigned h : s_rpcHits) n += h;
+        return n;
+    }
+
     HandshakeClient() = default;
     ~HandshakeClient() { Shutdown(); }
 
     bool Start(const char* host, unsigned short port, const char* nick)
     {
         Shutdown();
+        for (unsigned& h : s_rpcHits) h = 0;
         std::snprintf(nick_, sizeof(nick_), "%s", nick ? nick : "Native");
         client_ = RakNetworkFactory::GetRakClientInterface();
         if (!client_) return false;
@@ -197,6 +231,7 @@ public:
     void RequestClass(int cls = 0)
     {
         if (!client_ || state_ != State::JoinSent) return;
+        RegisterAllRpcs();
         RakNet::BitStream bs;
         bs.Write(cls);
         client_->RPC(&g_RpcRequestClass, &bs, HIGH_PRIORITY, RELIABLE,

@@ -2,8 +2,10 @@
 // Decides whether big-datagram loss is our-stack-on-Linux or open.mp-specific.
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <thread>
 #include <chrono>
+#include <vector>
 
 #include "RakNetworkFactory.h"
 #include "RakServerInterface.h"
@@ -39,6 +41,8 @@ int main() {
             srv->DeallocatePacket(p);
         }
         while ((p = cli->Receive()) != nullptr) {
+            std::printf("[cli-conn] pid=%u len=%u\n", p->length ? p->data[0] : 0,
+                        p->length);
             if (p->data[0] == ID_CONNECTION_REQUEST_ACCEPTED) connected = connected && true;
             cli->DeallocatePacket(p);
         }
@@ -47,26 +51,59 @@ int main() {
     }
     check(connected, "connected");
 
-    // Server blasts a 450-byte user packet (mirrors open.mp init burst size).
-    char blob[450];
-    for (int i = 0; i < 450; ++i) blob[i] = static_cast<char>(i * 7 + 1);
-    check(srv->Send(blob, sizeof(blob), HIGH_PRIORITY, RELIABLE, 0,
-                    UNASSIGNED_PLAYER_ID, true), "server-send");
+    // Server blasts a user packet (size via BLOB_SIZE, default 450 —
+    // mirrors open.mp init burst size).
+    const char* sz = std::getenv("BLOB_SIZE");
+    const int blobSize = sz ? std::atoi(sz) : 450;
+    std::vector<char> blobv(static_cast<std::size_t>(blobSize));
+    // First byte must be >= ID_RPC (20): RakNet delivers datagrams with a
+    // smaller leading byte only via internal branches. Real SAMP traffic
+    // always starts with a valid message id (RPC=20, sync=200+).
+    blobv[0] = static_cast<char>(0x91);
+    for (int i = 1; i < blobSize; ++i) blobv[i] = static_cast<char>(i * 7 + 1);
+    const char* blob = blobv.data();
+    const std::size_t blobLen = blobv.size();
+    const char tiny[10] = "012345678";
+    const char* swap = std::getenv("SWAP_ORDER");
+    if (swap) {
+        check(srv->Send(tiny, sizeof(tiny), HIGH_PRIORITY, RELIABLE, 0,
+                        UNASSIGNED_PLAYER_ID, true), "server-send-tiny");
+        check(srv->Send(blob, static_cast<int>(blobLen), HIGH_PRIORITY, RELIABLE, 0,
+                        UNASSIGNED_PLAYER_ID, true), "server-send");
+    } else {
+        check(srv->Send(blob, static_cast<int>(blobLen), HIGH_PRIORITY, RELIABLE, 0,
+                        UNASSIGNED_PLAYER_ID, true), "server-send");
+        check(srv->Send(tiny, sizeof(tiny), HIGH_PRIORITY, RELIABLE, 0,
+                        UNASSIGNED_PLAYER_ID, true), "server-send-tiny");
+    }
 
     bool gotIt = false;
+    bool gotTiny = false;
     deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     while (std::chrono::steady_clock::now() < deadline) {
         Packet* p = nullptr;
         while ((p = cli->Receive()) != nullptr) {
-            if (p->length == 450 + 1 &&
-                std::memcmp(p->data + 1, blob, sizeof(blob)) == 0)
+            std::printf("[cli] pid=%u len=%u\n", p->length ? p->data[0] : 0,
+                        p->length);
+            if (p->length == 100 || p->length == 450) {
+                std::printf("[cli] first16:");
+                for (unsigned i = 0; i < 16 && i < p->length; ++i)
+                    std::printf(" %02x", p->data[i]);
+                std::printf("\n");
+            }
+            if (p->length == blobLen &&
+                std::memcmp(p->data, blob, blobLen) == 0)
                 gotIt = true;
+            if (p->length == sizeof(tiny) &&
+                std::memcmp(p->data, tiny, sizeof(tiny)) == 0)
+                gotTiny = true;
             cli->DeallocatePacket(p);
         }
-        if (gotIt) break;
+        if (gotIt && gotTiny) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     check(gotIt, "big-payload-received");
+    check(gotTiny, "tiny-payload-received");
 
     cli->Disconnect(100);
     RakNetworkFactory::DestroyRakClientInterface(cli);
