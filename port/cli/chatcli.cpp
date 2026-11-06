@@ -127,10 +127,16 @@ int main(int argc, char** argv) {
                     std::printf("me: (%.1f, %.1f, %.1f)\n", sp.pos[0],
                                 sp.pos[1], sp.pos[2]);
                 } else if (line == "/who") {
-                    for (const auto& [id, rp] : c.remotes())
-                        std::printf("  id=%u pos=(%.1f, %.1f, %.1f) hp=%u\n",
-                                    id, rp.pos[0], rp.pos[1], rp.pos[2],
+                    for (const auto& [id, rp] : c.remotes()) {
+                        const auto it = c.roster().find(id);
+                        const char* nm =
+                            (it != c.roster().end() && it->second.name[0])
+                            ? it->second.name
+                            : "?";
+                        std::printf("  id=%u %s pos=(%.1f, %.1f, %.1f) hp=%u\n",
+                                    id, nm, rp.pos[0], rp.pos[1], rp.pos[2],
                                     rp.health);
+                    }
                     for (const auto& [id, re] : c.roster())
                         if (c.remotes().count(id) == 0)
                             std::printf("  id=%u skin=%d (not in range)\n",

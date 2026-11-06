@@ -163,8 +163,21 @@ public:
 
     template <unsigned Id>
     struct Thunk {
-        static void handler(RPCParameters*) {
+        static void handler(RPCParameters* p) {
             if (t_route) t_route->rpcHits_[Id]++;
+            if (std::getenv("SAMP_DEBUG_RPC") && p && p->input) {
+                const unsigned n =
+                    (p->numberOfBitsOfData / 8 > 48)
+                    ? 48
+                    : (p->numberOfBitsOfData / 8);
+                std::printf("[rpc %u %uB] ", Id, p->numberOfBitsOfData / 8);
+                for (unsigned i = 0; i < n; ++i) {
+                    const unsigned char ch = p->input[i];
+                    std::putchar((ch >= 32 && ch < 127) ? ch : '.');
+                }
+                std::puts("");
+                fflush(stdout);
+            }
         }
     };
 
@@ -191,6 +204,28 @@ public:
     static inline int s_rpcChat = 101;
     static inline int s_rpcClientMessage = 93;
     static inline int s_rpcDeath = 53;
+    static inline int s_rpcServerJoin = 137;
+
+    static void OnServerJoin(RPCParameters* p)
+    {
+        if (t_route) t_route->rpcHits_[137]++;
+        if (!t_route || !p || !p->input) return;
+        RakNet::BitStream bs(p->input, (p->numberOfBitsOfData / 8) + 1,
+                             false);
+        unsigned short pid = 0;
+        if (!bs.Read(pid)) return;
+        if (pid >= 1000) return;
+        int unk = 0;
+        unsigned char npc = 0, nlen = 0;
+        if (!bs.Read(unk)) return;
+        if (!bs.Read(npc)) return;
+        if (!bs.Read(nlen)) return;
+        if (nlen > 20) return;
+        char nm[24] = {};
+        if (nlen && !bs.Read(nm, nlen)) return;
+        auto& re = t_route->roster_[pid]; // creates if absent
+        std::snprintf(re.name, sizeof(re.name), "%s", nm);
+    }
     static inline int s_rpcWorldPlayerAdd = 32;
     static inline int s_rpcWorldVehicleAdd = 164;
     static inline int s_rpcWorldPlayerRemove = 163;
@@ -200,6 +235,7 @@ public:
         int skin = 0;
         unsigned char team = 0;
         float pos[3] = {};
+        char name[24] = {};
     };
     std::map<unsigned short, RosterEntry> roster_;
 
@@ -289,8 +325,8 @@ public:
     template <std::size_t... I>
     static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
     {
-        // 32/93/128/163 have dedicated decoders, skip the counter thunks.
-        ((I != 32 && I != 93 && I != 128 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
+        // 32/93/128/137/163 have dedicated decoders, skip the counter thunks.
+        ((I != 32 && I != 93 && I != 128 && I != 137 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
     }
 
     void RegisterAllRpcs()
@@ -301,6 +337,7 @@ public:
         client_->RegisterAsRemoteProcedureCall(&s_rpcClientMessage, &OnClientMessage);
         client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerAdd, &OnWorldPlayerAdd);
         client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerRemove, &OnWorldPlayerRemove);
+        client_->RegisterAsRemoteProcedureCall(&s_rpcServerJoin, &OnServerJoin);
         RegisterRange(client_, std::make_index_sequence<256>{});
     }
     const std::map<unsigned short, RosterEntry>& roster() const {

@@ -118,6 +118,9 @@ int main() {
     check(seesOther(b, a), "b-sees-a");
     check(a.roster().count(b.playerId()) > 0, "a-roster-has-b");
     check(b.roster().count(a.playerId()) > 0, "b-roster-has-a");
+    // NOTE: open.mp doesn't send names on the wire in this flow
+    // (no RPC 137, no name strings in any RPC payload — verified by dump).
+    // Names arrive via chat text / scoreboard instead.
     std::printf("A roster=%zu B roster=%zu\n", a.roster().size(),
                 b.roster().size());
 
