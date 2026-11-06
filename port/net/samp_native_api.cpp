@@ -22,6 +22,14 @@ struct SampClient {};
 SampClient* samp_create() { return reinterpret_cast<SampClient*>(1); }
 void samp_destroy(SampClient*) {}
 
+void samp_set_chat_cb(SampClient*, SampChatCb cb, void* ctx) {
+    g_chatCb = cb;
+    g_chatCtx = ctx;
+}
+void samp_set_relay_cb(SampClient*, SampRelayCb cb, void* ctx) {
+    g_relayCb = cb;
+    g_relayCtx = ctx;
+}
 static void pumpChat(SampClient*) {
     const auto& lines = g_client.chatLines();
     while (g_chatSeen < lines.size()) {
@@ -79,6 +87,10 @@ int samp_state(SampClient*) {
     return 0;
 }
 
+int samp_spawn_received(SampClient*) {
+    return g_client.spawnReceived() ? 1 : 0;
+}
+
 int samp_send_chat(SampClient*, const char* utf8) {
     return (utf8 && g_client.SendChat(utf8)) ? 0 : -1;
 }
@@ -86,6 +98,7 @@ int samp_send_chat(SampClient*, const char* utf8) {
 namespace {
 float g_lx = 0, g_ly = 0, g_lz = 0, g_lr = 0;
 bool g_havePos = false;
+std::chrono::steady_clock::time_point g_posAt{};
 std::chrono::steady_clock::time_point g_nextSync{};
 } // namespace
 
@@ -95,6 +108,28 @@ void samp_set_local_pos(SampClient*, float x, float y, float z, float rot) {
     g_lz = z;
     g_lr = rot;
     g_havePos = true;
+    g_posAt = std::chrono::steady_clock::now();
+}
+
+int samp_push_state(SampClient*) {
+    if (!g_client.spawnReceived()) return 0;
+    const auto now = std::chrono::steady_clock::now();
+    if (now < g_nextSync) return 0;
+    g_nextSync = now + std::chrono::milliseconds(
+        opensamp::net::kOnFootSendRateMs);
+    const auto& sp = g_client.spawn();
+    float x = sp.pos[0], y = sp.pos[1], z = sp.pos[2], r = sp.rotation;
+    if (g_havePos &&
+        now - g_posAt < std::chrono::milliseconds(500)) {
+        x = g_lx;
+        y = g_ly;
+        z = g_lz;
+        r = g_lr;
+    }
+    const auto idle = opensamp::net::makeIdleOnFoot(x, y, z, r);
+    const auto aim = opensamp::net::makeIdleAim(x, y, z);
+    const bool ok = g_client.SendOnFoot(idle) && g_client.SendAim(aim);
+    return ok ? 1 : 0;
 }
 
 int samp_remote_count(SampClient*) {

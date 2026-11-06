@@ -28,14 +28,21 @@ int samp_failed(SampClient* c);
 // 0 idle, 1 connecting, 2 accepted, 3 join sent, 4 class requested,
 // 5 spawned.
 int samp_state(SampClient* c);
+int samp_spawn_received(SampClient* c);
 
 // Outgoing.
 int samp_send_chat(SampClient* c, const char* utf8);
 void samp_set_local_pos(SampClient* c, float x, float y, float z, float rot);
 
+// Push one on-foot+aim tick from the stored position (20 Hz throttle
+// inside; returns 1 if packets were queued). Uses the last
+// samp_set_local_pos if fresh (<500 ms), else the spawn point.
+int samp_push_state(SampClient* c);
+
 // Incoming chat (server messages). Callback fires inside samp_poll for
 // lines not yet delivered. sender is "" for server text.
 void samp_set_chat_cb(SampClient* c, SampChatCb cb, void* ctx);
+void samp_set_relay_cb(SampClient* c, SampRelayCb cb, void* ctx);
 void samp_set_relay_cb(SampClient* c, SampRelayCb cb, void* ctx);
 
 // Remote players snapshot. Returns count (max capped); use index accessors.

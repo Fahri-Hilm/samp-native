@@ -1,0 +1,11 @@
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.csproj.AssemblyReference.cache
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.GeneratedMSBuildEditorConfig.editorconfig
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.AssemblyInfoInputs.cache
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.AssemblyInfo.cs
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.csproj.CoreCompileInputs.cache
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.sourcelink.json
+/home/iqaruz/Projects/samp-native/glue/bin/Debug/netstandard2.0/SampSharp.deps.json
+/home/iqaruz/Projects/samp-native/glue/bin/Debug/netstandard2.0/SampSharp.dll
+/home/iqaruz/Projects/samp-native/glue/bin/Debug/netstandard2.0/SampSharp.pdb
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.dll
+/home/iqaruz/Projects/samp-native/glue/obj/Debug/netstandard2.0/SampSharp.pdb

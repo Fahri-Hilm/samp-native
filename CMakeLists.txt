@@ -4,6 +4,7 @@ project(samp_native VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Required for the vendored RakNet fork: GCC -O2 deletes null checks before
 # sized array-delete (cookie read at p-8 faults for p==0). Upstream assumed
@@ -78,6 +79,22 @@ target_link_libraries(test_loopback PRIVATE raknet)
 target_include_directories(test_loopback PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME loopback COMMAND test_loopback)
+
+add_library(samp_native SHARED port/net/samp_native_api.cpp)
+target_link_libraries(samp_native PRIVATE raknet)
+target_include_directories(samp_native PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+  PRIVATE ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+set_target_properties(samp_native PROPERTIES
+  CXX_VISIBILITY_PRESET default
+  POSITION_INDEPENDENT_CODE ON)
+
+add_executable(test_api tests/test_api.cpp)
+target_link_libraries(test_api PRIVATE samp_native)
+add_test(NAME api COMMAND test_api)
+
+add_executable(test_api_live tests/test_api_live.cpp)
+target_link_libraries(test_api_live PRIVATE samp_native)
+add_test(NAME api_live COMMAND test_api_live)
 
 add_executable(chatcli port/cli/chatcli.cpp)
 target_link_libraries(chatcli PRIVATE samp_portable raknet)

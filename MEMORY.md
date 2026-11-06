@@ -102,9 +102,13 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    tak-terinit + `char c[3]` uninit di handshake offline → di-fix.
    SELESAI roster 2026-11-06: decode WorldPlayerAdd/Remove (32/163),
    two-player assert roster silang, `/who` chatcli tampilkan roster.
-   SELESAI peta glue 2026-11-06: `GLUE.md` — 6 seam SAU (chat in/out,
-   spawn lokal, ped remote, kendaraan, backend). Butuh Unity editor,
-   belum ada di mesin ini.
+   SELESAI glue C# 2026-11-06: `port/net/samp_native_api.h/.cpp` +
+   `libsamp_native.so` (18 simbol C, `nm -D` OK): `test_api` unit +
+   `test_api_live` hijau (join/chat/sync/push via .so — artefak yang
+   akan di-P/Invoke Unity). C# `glue/SampSharp` (`SampBridge` MonoBehaviour
+   Mirror-free + P/Invoke + stub API SAU/Unity): `dotnet build` hijau.
+   Belum diuji in-engine (butuh Unity editor) — lihat `glue/README.md`
+   untuk drop-in steps.
    SELESAI vehicle 2026-11-06: `port/net/vehicle.h` encode (client→server)
    + decode (server→client) + `test_vehicle` hijau. Temuan: format kirim
    vs terima beda (server prepend playerId + kompres) — sama polanya

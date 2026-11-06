@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>SampSharp</AssemblyName>
+    <RootNamespace>SampGlue</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="SampSharp/**/*.cs" />
+    <Compile Include="Stubs/**/*.cs" />
+  </ItemGroup>
+
+</Project>
