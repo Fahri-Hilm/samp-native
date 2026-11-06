@@ -191,6 +191,60 @@ public:
     static inline int s_rpcChat = 101;
     static inline int s_rpcClientMessage = 93;
     static inline int s_rpcDeath = 53;
+    static inline int s_rpcWorldPlayerAdd = 32;
+    static inline int s_rpcWorldVehicleAdd = 164;
+    static inline int s_rpcWorldPlayerRemove = 163;
+    static inline int s_rpcWorldVehicleRemove = 165;
+
+    struct RosterEntry {
+        int skin = 0;
+        unsigned char team = 0;
+        float pos[3] = {};
+    };
+    std::map<unsigned short, RosterEntry> roster_;
+
+    static void OnWorldPlayerAdd(RPCParameters* p)
+    {
+        if (t_route) t_route->rpcHits_[32]++;
+        if (!t_route || !p || !p->input) return;
+        RakNet::BitStream bs(p->input, (p->numberOfBitsOfData / 8) + 1,
+                             false);
+        unsigned short pid = 0;
+        unsigned char team = 0;
+        int skin = 0;
+        float x = 0, y = 0, z = 0, rot = 0;
+        std::uint32_t color = 0;
+        unsigned char fight = 4;
+        if (!bs.Read(pid)) return;
+        if (pid >= 1000) return;
+        bs.Read(team);
+        bs.Read(skin);
+        bs.Read(x);
+        bs.Read(y);
+        bs.Read(z);
+        bs.Read(rot);
+        bs.Read(color);
+        bs.Read(fight);
+        RosterEntry e{};
+        e.skin = skin;
+        e.team = team;
+        e.pos[0] = x;
+        e.pos[1] = y;
+        e.pos[2] = z;
+        t_route->roster_[pid] = e;
+    }
+
+    static void OnWorldPlayerRemove(RPCParameters* p)
+    {
+        if (t_route) t_route->rpcHits_[163]++;
+        if (!t_route || !p || !p->input) return;
+        RakNet::BitStream bs(p->input, (p->numberOfBitsOfData / 8) + 1,
+                             false);
+        unsigned short pid = 0;
+        if (!bs.Read(pid)) return;
+        t_route->roster_.erase(pid);
+        t_route->remotes_.erase(pid);
+    }
 
     bool SendDeath(unsigned char reason, unsigned short killer)
     {
@@ -235,8 +289,8 @@ public:
     template <std::size_t... I>
     static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
     {
-        // 93 and 128 have dedicated decoders, skip the counter thunks.
-        ((I != 93 && I != 128 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
+        // 32/93/128/163 have dedicated decoders, skip the counter thunks.
+        ((I != 32 && I != 93 && I != 128 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
     }
 
     void RegisterAllRpcs()
@@ -245,7 +299,12 @@ public:
         for (int i = 0; i < 256; ++i) s_rpcIds[i] = i;
         client_->RegisterAsRemoteProcedureCall(&s_rpcRequestClass, &OnRequestClass);
         client_->RegisterAsRemoteProcedureCall(&s_rpcClientMessage, &OnClientMessage);
+        client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerAdd, &OnWorldPlayerAdd);
+        client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerRemove, &OnWorldPlayerRemove);
         RegisterRange(client_, std::make_index_sequence<256>{});
+    }
+    const std::map<unsigned short, RosterEntry>& roster() const {
+        return roster_;
     }
 
     unsigned rpcTotal() const
@@ -277,6 +336,7 @@ public:
         spawn_ = SpawnInfo{};
         spawnReceived_ = false;
         chatLines_.clear();
+        roster_.clear();
         remotes_.clear();
         syncInCount_ = 0;
         std::snprintf(nick_, sizeof(nick_), "%s", nick ? nick : "Native");

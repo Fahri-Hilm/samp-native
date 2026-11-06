@@ -131,7 +131,12 @@ int main(int argc, char** argv) {
                         std::printf("  id=%u pos=(%.1f, %.1f, %.1f) hp=%u\n",
                                     id, rp.pos[0], rp.pos[1], rp.pos[2],
                                     rp.health);
-                    if (c.remotes().empty()) std::puts("  (nobody seen yet)");
+                    for (const auto& [id, re] : c.roster())
+                        if (c.remotes().count(id) == 0)
+                            std::printf("  id=%u skin=%d (not in range)\n",
+                                        id, re.skin);
+                    if (c.remotes().empty() && c.roster().empty())
+                        std::puts("  (nobody seen yet)");
                 } else if (!line.empty()) {
                     if (!c.SendChat(line.c_str()))
                         std::puts("chat send failed");

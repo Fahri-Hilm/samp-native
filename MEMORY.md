@@ -94,6 +94,8 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    SELESAI lihat-pemain 2026-11-06: `port/net/sync_in.h` decode kompresi
    (quat/vector/nibble HP) + `test_twoplayer`: A(id0)↔B(id1) saling lihat
    di posisi spawn. `ctest` 9 test.
+   SELESAI roster 2026-11-06: decode WorldPlayerAdd/Remove (32/163),
+   two-player assert roster silang, `/who` chatcli tampilkan roster.
    SELESAI peta glue 2026-11-06: `GLUE.md` — 6 seam SAU (chat in/out,
    spawn lokal, ped remote, kendaraan, backend). Butuh Unity editor,
    belum ada di mesin ini.

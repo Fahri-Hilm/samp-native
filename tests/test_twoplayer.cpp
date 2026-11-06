@@ -116,6 +116,10 @@ int main() {
     dumpRemotes("B", b);
     check(seesOther(a, b), "a-sees-b");
     check(seesOther(b, a), "b-sees-a");
+    check(a.roster().count(b.playerId()) > 0, "a-roster-has-b");
+    check(b.roster().count(a.playerId()) > 0, "b-roster-has-a");
+    std::printf("A roster=%zu B roster=%zu\n", a.roster().size(),
+                b.roster().size());
 
     a.Shutdown();
     b.Shutdown();
