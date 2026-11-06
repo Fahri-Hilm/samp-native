@@ -9,12 +9,16 @@
 
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
 #include "BitStream.h"
 
 namespace opensamp::net
 {
 inline constexpr unsigned char kMsgVehicleSync = 200;
+inline constexpr unsigned char kMsgUnoccupiedSync = 209;
+inline constexpr unsigned char kMsgPassengerSync = 211;
+inline constexpr unsigned char kMsgMarkersSync = 208;
 
 struct RemoteVehicle {
     unsigned short playerId = 0;
@@ -102,6 +106,107 @@ inline bool encodeVehicleSend(unsigned short vehicleId, const float quat[4],
     out.WriteCompressed(false); // trailer
     out.Write(static_cast<std::uint32_t>(0)); // trailer id
     out.WriteCompressed(false); // train
+    return true;
+}
+
+#pragma pack(push, 1)
+struct PassengerSync {
+    std::uint16_t vehicleId = 0;
+    std::uint8_t seatDriveBy = 0; // low 7 bits seat, high bit drive-by
+    std::uint8_t weapon = 0;
+    std::uint8_t health = 0;
+    std::uint8_t armour = 0;
+    std::uint16_t lr = 0;
+    std::uint16_t ud = 0;
+    std::uint16_t keys = 0;
+    float pos[3] = {};
+};
+#pragma pack(pop)
+static_assert(sizeof(PassengerSync) == 24, "passenger wire size");
+
+#pragma pack(push, 1)
+struct UnoccupiedSync {
+    std::uint16_t vehicleId = 0;
+    short roll[3] = {};
+    short direction[3] = {};
+    std::uint8_t unk[13] = {};
+    float pos[3] = {};
+    float moveSpeed[3] = {};
+    float turnSpeed[3] = {};
+    float health = 1000.0f;
+};
+#pragma pack(pop)
+static_assert(sizeof(UnoccupiedSync) == 67, "unoccupied wire size");
+
+struct MarkerEntry {
+    unsigned short playerId = 0;
+    bool active = false;
+    float pos[3] = {};
+};
+
+inline bool decodePassengerSync(const unsigned char* data, unsigned bitLen,
+                                unsigned short& pidOut, PassengerSync& out)
+{
+    if (!data || bitLen < 8 + 16) return false;
+    RakNet::BitStream bs(const_cast<unsigned char*>(data), bitLen / 8 + 1,
+                         false);
+    bs.IgnoreBits(8);
+    unsigned short pid = 0;
+    if (!bs.Read(pid) || pid >= 1000) return false;
+    PassengerSync v{};
+    if (!bs.Read(reinterpret_cast<char*>(&v), sizeof(v))) return false;
+    // Trailing bytes are not part of the fixed layout; ignore.
+    pidOut = pid;
+    out = v;
+    return true;
+}
+
+inline bool decodeUnoccupiedSync(const unsigned char* data, unsigned bitLen,
+                                 unsigned short& pidOut, UnoccupiedSync& out)
+{
+    if (!data || bitLen < 8 + 16) return false;
+    RakNet::BitStream bs(const_cast<unsigned char*>(data), bitLen / 8 + 1,
+                         false);
+    bs.IgnoreBits(8);
+    unsigned short pid = 0;
+    if (!bs.Read(pid) || pid >= 1000) return false;
+    UnoccupiedSync v{};
+    if (!bs.Read(reinterpret_cast<char*>(&v), sizeof(v))) return false;
+    pidOut = pid;
+    out = v;
+    return true;
+}
+
+// Markers (minimap blips): int count, then per player
+// (u16 id + compressed bool active [+ 3x short pos if active]).
+inline bool decodeMarkersSync(const unsigned char* data, unsigned bitLen,
+                              std::vector<MarkerEntry>& out)
+{
+    if (!data || bitLen < 8 + 32) return false;
+    RakNet::BitStream bs(const_cast<unsigned char*>(data), bitLen / 8 + 1,
+                         false);
+    bs.IgnoreBits(8);
+    int count = 0;
+    if (!bs.Read(count)) return false;
+    if (count < 0 || count > 1000) return false;
+    std::vector<MarkerEntry> v;
+    v.reserve(static_cast<std::size_t>(count));
+    for (int i = 0; i < count; ++i) {
+        MarkerEntry e{};
+        if (!bs.Read(e.playerId) || e.playerId >= 1000) return false;
+        bool active = false;
+        if (!bs.ReadCompressed(active)) return false;
+        e.active = active;
+        if (active) {
+            short x = 0, y = 0, z = 0;
+            if (!bs.Read(x) || !bs.Read(y) || !bs.Read(z)) return false;
+            e.pos[0] = static_cast<float>(x);
+            e.pos[1] = static_cast<float>(y);
+            e.pos[2] = static_cast<float>(z);
+        }
+        v.push_back(e);
+    }
+    out = std::move(v);
     return true;
 }
 } // namespace opensamp::net

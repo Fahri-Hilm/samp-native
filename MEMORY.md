@@ -109,6 +109,7 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    + decode (server→client) + `test_vehicle` hijau. Temuan: format kirim
    vs terima beda (server prepend playerId + kompres) — sama polanya
    dengan on-foot. Live test masuk-kendaraan pending (butuh dunia).
+   + passenger 24B / unoccupied 67B / markers decode + unit hijau.
    SELESAI chatcli 2026-11-06: `port/cli/chatcli.cpp` — client terminal
    native (join+spawn+sync 20Hz+chat interaktif, /pos /who /q). Live:
    join, welcome tampil, chat terkirim ke server, quit bersih.

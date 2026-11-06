@@ -14,7 +14,13 @@ void check(bool ok, const char* what) {
 
 int main() {
     using opensamp::net::RemoteVehicle;
+    using opensamp::net::PassengerSync;
+    using opensamp::net::UnoccupiedSync;
+    using opensamp::net::MarkerEntry;
     using opensamp::net::decodeVehicleSync;
+    using opensamp::net::decodePassengerSync;
+    using opensamp::net::decodeUnoccupiedSync;
+    using opensamp::net::decodeMarkersSync;
     using opensamp::net::encodeVehicleSend;
 
     const float q[4] = {0.8660254f, 0.0f, 0.0f, 0.5f};
@@ -85,6 +91,76 @@ int main() {
         RemoteVehicle q2{};
         check(!decodeVehicleSync(b2.GetData(), b2.GetNumberOfBitsUsed(), q2),
               "reject-badpid");
+    }
+
+    // Passenger: fixed 24B after pid.
+    {
+        RakNet::BitStream bp;
+        bp.Write(static_cast<unsigned char>(211));
+        bp.Write(static_cast<unsigned short>(3));
+        bp.Write(static_cast<unsigned short>(401)); // vehicle
+        bp.Write(static_cast<unsigned char>(0x85)); // seat 5 + drive-by
+        bp.Write(static_cast<unsigned char>(24)); // weapon
+        bp.Write(static_cast<unsigned char>(100)); // hp
+        bp.Write(static_cast<unsigned char>(50)); // arm
+        bp.Write(static_cast<unsigned short>(0));
+        bp.Write(static_cast<unsigned short>(0));
+        bp.Write(static_cast<unsigned short>(0));
+        bp.Write(10.0f);
+        bp.Write(20.0f);
+        bp.Write(30.0f);
+        unsigned short pid = 0;
+        PassengerSync ps{};
+        check(decodePassengerSync(bp.GetData(), bp.GetNumberOfBitsUsed(), pid,
+                                  ps),
+              "pass-ok");
+        check(pid == 3 && ps.vehicleId == 401, "pass-veh");
+        check(ps.seatDriveBy == 0x85 && ps.weapon == 24, "pass-seat");
+        check(ps.pos[0] == 10.0f && ps.pos[2] == 30.0f, "pass-pos");
+    }
+
+    // Unoccupied: fixed 67B after pid.
+    {
+        RakNet::BitStream bu;
+        bu.Write(static_cast<unsigned char>(209));
+        bu.Write(static_cast<unsigned short>(4));
+        bu.Write(static_cast<unsigned short>(402));
+        for (int i = 0; i < 6; ++i) bu.Write(static_cast<short>(0));
+        for (int i = 0; i < 13; ++i)
+            bu.Write(static_cast<unsigned char>(0));
+        bu.Write(1.0f);
+        bu.Write(2.0f);
+        bu.Write(3.0f);
+        for (int i = 0; i < 3; ++i) bu.Write(0.0f);
+        for (int i = 0; i < 3; ++i) bu.Write(0.0f);
+        bu.Write(500.0f);
+        unsigned short pid = 0;
+        UnoccupiedSync us{};
+        check(decodeUnoccupiedSync(bu.GetData(), bu.GetNumberOfBitsUsed(), pid,
+                                   us),
+              "unocc-ok");
+        check(pid == 4 && us.vehicleId == 402, "unocc-veh");
+        check(us.pos[0] == 1.0f && us.health == 500.0f, "unocc-pos-hp");
+    }
+
+    // Markers: count + entries (active with pos, inactive without).
+    {
+        RakNet::BitStream bm;
+        bm.Write(static_cast<unsigned char>(208));
+        bm.Write(2);
+        bm.Write(static_cast<unsigned short>(1));
+        bm.WriteCompressed(true);
+        bm.Write(static_cast<short>(-1291));
+        bm.Write(static_cast<short>(2513));
+        bm.Write(static_cast<short>(87));
+        bm.Write(static_cast<unsigned short>(2));
+        bm.WriteCompressed(false);
+        std::vector<MarkerEntry> ms;
+        check(decodeMarkersSync(bm.GetData(), bm.GetNumberOfBitsUsed(), ms),
+              "mark-ok");
+        check(ms.size() == 2, "mark-count");
+        check(ms[0].active && ms[0].pos[0] == -1291.0f, "mark-pos");
+        check(!ms[1].active, "mark-inactive");
     }
 
     if (fails == 0) std::puts("ALL PASS");
