@@ -44,11 +44,23 @@ target_include_directories(test_sync PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME sync COMMAND test_sync)
 
+add_executable(test_sync_in tests/test_sync_in.cpp)
+target_link_libraries(test_sync_in PRIVATE samp_portable raknet)
+target_include_directories(test_sync_in PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME sync_in COMMAND test_sync_in)
+
 add_executable(test_handshake tests/test_handshake.cpp)
 target_link_libraries(test_handshake PRIVATE samp_portable raknet)
 target_include_directories(test_handshake PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME handshake COMMAND test_handshake)
+
+add_executable(test_twoplayer tests/test_twoplayer.cpp)
+target_link_libraries(test_twoplayer PRIVATE samp_portable raknet)
+target_include_directories(test_twoplayer PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME twoplayer COMMAND test_twoplayer)
 
 add_executable(test_loopback tests/test_loopback.cpp)
 target_link_libraries(test_loopback PRIVATE raknet)

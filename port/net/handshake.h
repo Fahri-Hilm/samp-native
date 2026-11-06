@@ -26,7 +26,9 @@
 #include "SAMPAuth.h"
 #include "port/net/chat.h"
 #include "port/net/sync.h"
+#include "port/net/sync_in.h"
 
+#include <map>
 #include <vector>
 
 namespace opensamp::net
@@ -148,16 +150,21 @@ class HandshakeClient
 public:
     enum class State { Idle, Connecting, Accepted, JoinSent, ClassRequested, SpawnRequested };
 
-    // Per-RPC-ID call counts. Static: RakNet wants free functions.
-    // Incoming RPCs otherwise vanish inside HandleRPCPacket (see
-    // UNDEFINED_RPC_INDEX drop) — that is why an unregistered client
-    // "hears nothing" after joining.
-    static inline unsigned s_rpcHits[256] = {};
+    // Per-RPC-ID call counts. Incoming RPCs otherwise vanish inside
+    // HandleRPCPacket (UNDEFINED_RPC_INDEX drop) — that is why an
+    // unregistered client "hears nothing" after joining.
+    // Handlers are free functions; they route to the polling instance
+    // via t_route (set on PollOnce entry). Single-threaded use only.
     static inline int s_rpcIds[256] = {};
+    static inline thread_local HandshakeClient* t_route = nullptr;
+
+    unsigned rpcHits_[256] = {};
 
     template <unsigned Id>
     struct Thunk {
-        static void handler(RPCParameters*) { s_rpcHits[Id]++; }
+        static void handler(RPCParameters*) {
+            if (t_route) t_route->rpcHits_[Id]++;
+        }
     };
 
     // PLAYER_SPAWN_INFO wire layout (pack(1), 46 bytes — mirrors upstream).
@@ -174,39 +181,41 @@ public:
 #pragma pack(pop)
     static_assert(sizeof(SpawnInfo) == 46, "spawn wire layout");
 
-    static inline unsigned char s_spawnOutcome = 0;
-    static inline SpawnInfo s_spawn{};
-    static inline bool s_spawnReceived = false;
+    unsigned char spawnOutcome_ = 0;
+    SpawnInfo spawn_{};
+    bool spawnReceived_ = false;
     static inline int s_rpcRequestClass = 128;
     static inline int s_rpcRequestSpawn = 129;
     static inline int s_rpcSpawn = 52;
     static inline int s_rpcChat = 101;
     static inline int s_rpcClientMessage = 93;
-    static inline std::vector<ChatLine> s_chatLines;
+    std::vector<ChatLine> chatLines_;
+    std::map<unsigned short, RemotePlayer> remotes_;
+    unsigned syncInCount_ = 0;
 
     static void OnClientMessage(RPCParameters* p)
     {
-        s_rpcHits[93]++;
-        if (!p || !p->input) return;
+        if (t_route) t_route->rpcHits_[93]++;
+        if (!t_route || !p || !p->input) return;
         ChatLine line;
         if (decodeClientMessage(p->input, p->numberOfBitsOfData, line))
-            s_chatLines.push_back(std::move(line));
+            t_route->chatLines_.push_back(std::move(line));
     }
 
     static void OnRequestClass(RPCParameters* p)
     {
-        s_rpcHits[128]++;
-        if (!p || !p->input) return;
+        if (t_route) t_route->rpcHits_[128]++;
+        if (!t_route || !p || !p->input) return;
         RakNet::BitStream bs(p->input,
             (p->numberOfBitsOfData / 8) + 1, false);
         unsigned char outcome = 0;
         if (!bs.Read(outcome)) return;
-        s_spawnOutcome = outcome;
+        t_route->spawnOutcome_ = outcome;
         if (outcome) {
             SpawnInfo tmp{};
             if (!bs.Read(reinterpret_cast<char*>(&tmp), sizeof(tmp))) return;
-            s_spawn = tmp;
-            s_spawnReceived = true;
+            t_route->spawn_ = tmp;
+            t_route->spawnReceived_ = true;
         }
     }
 
@@ -229,9 +238,20 @@ public:
     unsigned rpcTotal() const
     {
         unsigned n = 0;
-        for (unsigned h : s_rpcHits) n += h;
+        for (unsigned h : rpcHits_) n += h;
         return n;
     }
+    unsigned rpcHit(int id) const {
+        return (id >= 0 && id < 256) ? rpcHits_[id] : 0;
+    }
+    unsigned syncInCount() const { return syncInCount_; }
+    const std::map<unsigned short, RemotePlayer>& remotes() const {
+        return remotes_;
+    }
+    const std::vector<ChatLine>& chatLines() const { return chatLines_; }
+    const SpawnInfo& spawn() const { return spawn_; }
+    bool spawnReceived() const { return spawnReceived_; }
+    unsigned char spawnOutcome() const { return spawnOutcome_; }
 
     HandshakeClient() = default;
     ~HandshakeClient() { Shutdown(); }
@@ -239,11 +259,13 @@ public:
     bool Start(const char* host, unsigned short port, const char* nick)
     {
         Shutdown();
-        for (unsigned& h : s_rpcHits) h = 0;
-        s_spawnOutcome = 0;
-        s_spawn = SpawnInfo{};
-        s_spawnReceived = false;
-        s_chatLines.clear();
+        for (unsigned& h : rpcHits_) h = 0;
+        spawnOutcome_ = 0;
+        spawn_ = SpawnInfo{};
+        spawnReceived_ = false;
+        chatLines_.clear();
+        remotes_.clear();
+        syncInCount_ = 0;
         std::snprintf(nick_, sizeof(nick_), "%s", nick ? nick : "Native");
         client_ = RakNetworkFactory::GetRakClientInterface();
         if (!client_) return false;
@@ -260,6 +282,7 @@ public:
     void PollOnce()
     {
         if (!client_) return;
+        t_route = this;
         Packet* pkt = nullptr;
         while ((pkt = client_->Receive()) != nullptr)
         {
@@ -277,6 +300,13 @@ public:
                 OnAccepted(pkt);
             else if (pid == ID_RPC)
                 ++rpcCount_;
+            else if (pid == 207 && pkt->length > 1) {
+                RemotePlayer rp{};
+                if (decodePlayerSync(pkt->data, pkt->length * 8, rp)) {
+                    remotes_[rp.id] = rp;
+                    ++syncInCount_;
+                }
+            }
             else if (pid == ID_CONNECTION_ATTEMPT_FAILED ||
                      pid == ID_CONNECTION_BANNED ||
                      pid == ID_INVALID_PASSWORD ||
@@ -302,7 +332,7 @@ public:
 
     void RequestSpawn()
     {
-        if (!client_ || !s_spawnReceived) return;
+        if (!client_ || !spawnReceived_) return;
         RakNet::BitStream bsEmpty;
         client_->RPC(&s_rpcRequestSpawn, &bsEmpty, HIGH_PRIORITY, RELIABLE,
                      0, false, UNASSIGNED_NETWORK_ID, nullptr);

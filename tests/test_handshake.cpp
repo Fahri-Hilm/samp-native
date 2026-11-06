@@ -50,7 +50,7 @@ int main() {
             classAsked = true;
         }
         if (classAsked && c.rpcTotal() >= 1
-            && opensamp::net::HandshakeClient::s_spawnReceived) {
+            && c.spawnReceived()) {
             c.RequestSpawn();
             break;
         }
@@ -76,7 +76,7 @@ int main() {
             opensamp::net::HandshakeClient::State::SpawnRequested,
             "spawn-state");
         std::printf("  rpcs-after-spawn=%u\n", c.rpcTotal());
-        const auto& lines = opensamp::net::HandshakeClient::s_chatLines;
+        const auto& lines = c.chatLines();
         std::printf("  chat-lines=%zu\n", lines.size());
         check(!lines.empty(), "chat-received-proof");
     }
@@ -84,7 +84,7 @@ int main() {
     // On-foot sync at 20 Hz from our spawn point: the server must keep us
     // alive (AFK timer) and stream us to other players.
     {
-        const auto& sp = opensamp::net::HandshakeClient::s_spawn;
+        const auto& sp = c.spawn();
         opensamp::net::OnFootData idle =
             opensamp::net::makeIdleOnFoot(sp.pos[0], sp.pos[1], sp.pos[2],
                                           sp.rotation);
@@ -114,17 +114,17 @@ int main() {
         check(sentAim >= 150, "aim-rate");
     }
     {
-        const auto& lines = opensamp::net::HandshakeClient::s_chatLines;
+        const auto& lines = c.chatLines();
         std::printf("  chat-lines=%zu\n", lines.size());
         for (const auto& ln : lines)
             std::printf("  chat #%08x %s\n", ln.color, ln.text_utf8.c_str());
         check(!lines.empty(), "chat-received");
     }
     check(c.rpcTotal() >= 1, "server-talked-back");
-    check(opensamp::net::HandshakeClient::s_spawnReceived, "spawn-info");
-    check(opensamp::net::HandshakeClient::s_spawnOutcome == 1, "outcome-ok");
+    check(c.spawnReceived(), "spawn-info");
+    check(c.spawnOutcome() == 1, "outcome-ok");
     {
-        const auto& sp = opensamp::net::HandshakeClient::s_spawn;
+        const auto& sp = c.spawn();
         const bool finite = std::isfinite(sp.pos[0]) && std::isfinite(sp.pos[1])
             && std::isfinite(sp.pos[2]) && std::isfinite(sp.rotation);
         std::printf("  skin=%d pos=(%.1f, %.1f, %.1f) rot=%.1f team=%u\n",
@@ -133,9 +133,8 @@ int main() {
         check(sp.skin >= 0 && sp.skin <= 311, "spawn-skin-range");
     }
     for (int i = 0; i < 256; ++i)
-        if (opensamp::net::HandshakeClient::s_rpcHits[i])
-            std::printf("  rpc id=%d count=%u\n", i,
-                opensamp::net::HandshakeClient::s_rpcHits[i]);
+        if (c.rpcHit(i))
+            std::printf("  rpc id=%d count=%u\n", i, c.rpcHit(i));
     c.Shutdown();
 
     if (fails == 0) std::puts("ALL PASS");
