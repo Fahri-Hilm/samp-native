@@ -86,4 +86,7 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    SELESAI 2026-11-06: `port/net/chat.h` (codec RPC 101/93 + CP1251) +
    `test_chat` hijau. Live: kirim "halo dari native" → tercatat di server
    log; terima 5 baris welcome gungame (warna terdecode). `ctest 6/6`.
-4. On-foot sync 20Hz → glue SAU (butuh Unity editor) → vehicle/textdraw.
+4. ~~On-foot sync 20Hz → glue SAU (butuh Unity editor) → vehicle/textdraw.~~
+   SELESAI sync 2026-11-06: `port/net/sync.h` (`OnFootData` 68B pack(1)) +
+   `test_sync` hijau. Live: 196 sync/10s dari titik spawn, server balas
+   RPC 67 x197, sesi hidup, part bersih. Glue SAU (Unity editor) sisa.

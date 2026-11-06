@@ -25,6 +25,7 @@
 #include "NetworkTypes.h"
 #include "SAMPAuth.h"
 #include "port/net/chat.h"
+#include "port/net/sync.h"
 
 #include <vector>
 
@@ -317,6 +318,15 @@ public:
         if (!encodeChatSend(utf8, bs)) return false;
         return client_->RPC(&s_rpcChat, &bs, HIGH_PRIORITY, RELIABLE,
                             0, false, UNASSIGNED_NETWORK_ID, nullptr);
+    }
+
+    // Raw datagram send (non-RPC: sync packets). Returns bytes queued.
+    bool SendOnFoot(const OnFootData& d)
+    {
+        if (!client_) return false;
+        RakNet::BitStream bs;
+        encodeOnFootSend(d, bs);
+        return client_->Send(&bs, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
     }
 
     void Shutdown()

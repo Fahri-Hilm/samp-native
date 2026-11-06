@@ -78,6 +78,40 @@ int main() {
         std::printf("  rpcs-after-spawn=%u\n", c.rpcTotal());
         const auto& lines = opensamp::net::HandshakeClient::s_chatLines;
         std::printf("  chat-lines=%zu\n", lines.size());
+        check(!lines.empty(), "chat-received-proof");
+    }
+
+    // On-foot sync at 20 Hz from our spawn point: the server must keep us
+    // alive (AFK timer) and stream us to other players.
+    {
+        const auto& sp = opensamp::net::HandshakeClient::s_spawn;
+        opensamp::net::OnFootData idle =
+            opensamp::net::makeIdleOnFoot(sp.pos[0], sp.pos[1], sp.pos[2],
+                                          sp.rotation);
+        unsigned sent = 0;
+        const auto deadline3 =
+            std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        auto next =
+            std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() < deadline3) {
+            c.PollOnce();
+            if (c.failed()) break;
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= next) {
+                if (c.SendOnFoot(idle)) ++sent;
+                next = now + std::chrono::milliseconds(
+                    opensamp::net::kOnFootSendRateMs);
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+        }
+        std::printf("  onfoot-sent=%u\n", sent);
+        check(!c.failed(), "sync-survived");
+        check(sent >= 150, "sync-rate"); // 10 s at 20 Hz = 200, slack 150
+    }
+    {
+        const auto& lines = opensamp::net::HandshakeClient::s_chatLines;
+        std::printf("  chat-lines=%zu\n", lines.size());
         for (const auto& ln : lines)
             std::printf("  chat #%08x %s\n", ln.color, ln.text_utf8.c_str());
         check(!lines.empty(), "chat-received");
