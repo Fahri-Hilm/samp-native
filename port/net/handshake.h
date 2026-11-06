@@ -24,6 +24,9 @@
 #include "PacketPriority.h"
 #include "NetworkTypes.h"
 #include "SAMPAuth.h"
+#include "port/net/chat.h"
+
+#include <vector>
 
 namespace opensamp::net
 {
@@ -176,6 +179,18 @@ public:
     static inline int s_rpcRequestClass = 128;
     static inline int s_rpcRequestSpawn = 129;
     static inline int s_rpcSpawn = 52;
+    static inline int s_rpcChat = 101;
+    static inline int s_rpcClientMessage = 93;
+    static inline std::vector<ChatLine> s_chatLines;
+
+    static void OnClientMessage(RPCParameters* p)
+    {
+        s_rpcHits[93]++;
+        if (!p || !p->input) return;
+        ChatLine line;
+        if (decodeClientMessage(p->input, p->numberOfBitsOfData, line))
+            s_chatLines.push_back(std::move(line));
+    }
 
     static void OnRequestClass(RPCParameters* p)
     {
@@ -197,8 +212,8 @@ public:
     template <std::size_t... I>
     static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
     {
-        // 128 has a dedicated decoder (OnRequestClass), skip the counter thunk.
-        ((I != 128 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
+        // 93 and 128 have dedicated decoders, skip the counter thunks.
+        ((I != 93 && I != 128 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
     }
 
     void RegisterAllRpcs()
@@ -206,6 +221,7 @@ public:
         if (!client_) return;
         for (int i = 0; i < 256; ++i) s_rpcIds[i] = i;
         client_->RegisterAsRemoteProcedureCall(&s_rpcRequestClass, &OnRequestClass);
+        client_->RegisterAsRemoteProcedureCall(&s_rpcClientMessage, &OnClientMessage);
         RegisterRange(client_, std::make_index_sequence<256>{});
     }
 
@@ -226,6 +242,7 @@ public:
         s_spawnOutcome = 0;
         s_spawn = SpawnInfo{};
         s_spawnReceived = false;
+        s_chatLines.clear();
         std::snprintf(nick_, sizeof(nick_), "%s", nick ? nick : "Native");
         client_ = RakNetworkFactory::GetRakClientInterface();
         if (!client_) return false;
@@ -291,6 +308,15 @@ public:
         client_->RPC(&s_rpcSpawn, &bsEmpty, HIGH_PRIORITY, RELIABLE,
                      0, false, UNASSIGNED_NETWORK_ID, nullptr);
         state_ = State::SpawnRequested;
+    }
+
+    bool SendChat(const char* utf8)
+    {
+        if (!client_ || !utf8) return false;
+        RakNet::BitStream bs;
+        if (!encodeChatSend(utf8, bs)) return false;
+        return client_->RPC(&s_rpcChat, &bs, HIGH_PRIORITY, RELIABLE,
+                            0, false, UNASSIGNED_NETWORK_ID, nullptr);
     }
 
     void Shutdown()

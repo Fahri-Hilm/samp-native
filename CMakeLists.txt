@@ -32,6 +32,12 @@ target_include_directories(test_netlink PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME netlink COMMAND test_netlink)
 
+add_executable(test_chat tests/test_chat.cpp)
+target_link_libraries(test_chat PRIVATE samp_portable raknet)
+target_include_directories(test_chat PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME chat COMMAND test_chat)
+
 add_executable(test_handshake tests/test_handshake.cpp)
 target_link_libraries(test_handshake PRIVATE samp_portable raknet)
 target_include_directories(test_handshake PRIVATE

@@ -61,7 +61,9 @@ int main() {
     check(classAsked, "class-requested");
     // Post-spawn: hold the connection, server should keep talking
     // (world/mark/sync RPCs). Assert the link survives sending Spawn.
+    // Also send a chat line and expect the server to echo/broadcast.
     {
+        check(c.SendChat("halo dari native [samp-native]"), "chat-sent");
         const auto deadline2 =
             std::chrono::steady_clock::now() + std::chrono::seconds(6);
         while (std::chrono::steady_clock::now() < deadline2) {
@@ -74,6 +76,11 @@ int main() {
             opensamp::net::HandshakeClient::State::SpawnRequested,
             "spawn-state");
         std::printf("  rpcs-after-spawn=%u\n", c.rpcTotal());
+        const auto& lines = opensamp::net::HandshakeClient::s_chatLines;
+        std::printf("  chat-lines=%zu\n", lines.size());
+        for (const auto& ln : lines)
+            std::printf("  chat #%08x %s\n", ln.color, ln.text_utf8.c_str());
+        check(!lines.empty(), "chat-received");
     }
     check(c.rpcTotal() >= 1, "server-talked-back");
     check(opensamp::net::HandshakeClient::s_spawnReceived, "spawn-info");
