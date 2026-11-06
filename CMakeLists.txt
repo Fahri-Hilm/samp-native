@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Required for the vendored RakNet fork: GCC -O2 deletes null checks before
+# sized array-delete (cookie read at p-8 faults for p==0). Upstream assumed
+# MSVC semantics. Proven by bisection: only this flag fixes release crashes.
+add_compile_options(-fno-delete-null-pointer-checks)
+
 add_library(samp_portable INTERFACE)
 target_include_directories(samp_portable INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

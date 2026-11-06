@@ -93,7 +93,13 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    SELESAI aim 2026-11-06: `AimData` 31B (zoom/weapon 1 byte) + live 196/10s.
    SELESAI lihat-pemain 2026-11-06: `port/net/sync_in.h` decode kompresi
    (quat/vector/nibble HP) + `test_twoplayer`: A(id0)↔B(id1) saling lihat
-   di posisi spawn. `ctest` 9 test.
+   di posisi spawn. `ctest` 9 test (rilis: `ctest 10/10` + live hijau).
+   SELESAI crash rilis 2026-11-06: loopback SEGFAULT khusus -O2 —
+   akar: GCC sized array-delete baca cookie di p-8 tanpa cek null
+   (disassembly), dipicu hapus array null. Fix: guard `if(listArray)`
+   + flag build `-fno-delete-null-pointer-checks` (bukti bisect: cuma
+   flag ini yang menyembuhkan). Bonus MSan: struct `RemoteSystem`
+   tak-terinit + `char c[3]` uninit di handshake offline → di-fix.
    SELESAI roster 2026-11-06: decode WorldPlayerAdd/Remove (32/163),
    two-player assert roster silang, `/who` chatcli tampilkan roster.
    SELESAI peta glue 2026-11-06: `GLUE.md` — 6 seam SAU (chat in/out,
