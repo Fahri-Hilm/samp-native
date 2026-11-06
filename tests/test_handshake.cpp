@@ -112,6 +112,20 @@ int main() {
         check(!c.failed(), "sync-survived");
         check(sent >= 150, "sync-rate"); // 10 s at 20 Hz = 200, slack 150
         check(sentAim >= 150, "aim-rate");
+
+        // Death + respawn: claim wasted, session must survive.
+        check(c.SendDeath(0, 0xFFFF), "death-sent");
+        {
+            const auto deadline4 =
+                std::chrono::steady_clock::now() + std::chrono::seconds(6);
+            while (std::chrono::steady_clock::now() < deadline4) {
+                c.PollOnce();
+                if (c.failed()) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            }
+            check(!c.failed(), "death-survived");
+            std::printf("  rpcs-after-death=%u\n", c.rpcTotal());
+        }
     }
     {
         const auto& lines = c.chatLines();

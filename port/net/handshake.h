@@ -190,6 +190,17 @@ public:
     static inline int s_rpcSpawn = 52;
     static inline int s_rpcChat = 101;
     static inline int s_rpcClientMessage = 93;
+    static inline int s_rpcDeath = 53;
+
+    bool SendDeath(unsigned char reason, unsigned short killer)
+    {
+        if (!client_) return false;
+        RakNet::BitStream bs;
+        bs.Write(reason);
+        bs.Write(killer);
+        return client_->RPC(&s_rpcDeath, &bs, HIGH_PRIORITY, RELIABLE_ORDERED,
+                            0, false, UNASSIGNED_NETWORK_ID, nullptr);
+    }
     std::vector<ChatLine> chatLines_;
     std::map<unsigned short, RemotePlayer> remotes_;
     std::map<unsigned short, RemoteVehicle> remoteVehicles_;
