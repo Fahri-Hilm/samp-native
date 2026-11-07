@@ -94,6 +94,12 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    SELESAI lihat-pemain 2026-11-06: `port/net/sync_in.h` decode kompresi
    (quat/vector/nibble HP) + `test_twoplayer`: A(id0)↔B(id1) saling lihat
    di posisi spawn. `ctest` 9 test (rilis: `ctest 10/10` + live hijau).
+   SELESAI relay Unity 2026-11-07: player Unity SAU (native, build lokal)
+   join + announced chat + push sync 20 Hz; observer independen melihat
+   `id=0 pos=(-1290,2512) hp=100`. "Tidak relay" sebelumnya = jarak
+   stream (±3400 unit), BUKAN bug. Hook uji: `SAMP_FORCE_POS`.
+   SELESAI master plan 2026-11-07: `docs/master-plan.md` adopsi v2.0 +
+   amandemen status teruji (engine=SAU, protocol done, ADR-0017/18/19).
    SELESAI crash rilis 2026-11-06: loopback SEGFAULT khusus -O2 —
    akar: GCC sized array-delete baca cookie di p-8 tanpa cek null
    (disassembly), dipicu hapus array null. Fix: guard `if(listArray)`
