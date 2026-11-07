@@ -90,6 +90,7 @@ namespace SampGlue
         }
 
         private int _frame;
+    private bool _announced;
         void Update()
         {
             if (_client == IntPtr.Zero) return;
@@ -111,6 +112,12 @@ namespace SampGlue
                 SpawnLocalPed();
             }
             if (st == 5) {
+                if (!_announced) {
+                    _announced = true;
+                    Api.samp_send_chat(_client,
+                        SampMarshal.ToUtf8("SAU online (Unity native)"));
+                    Debug.Log("[samp] announced presence");
+                }
                 PushLocalTransform();
                 int sent = Api.samp_push_state(_client);
                 if ((_frame++ % 300) == 0)
