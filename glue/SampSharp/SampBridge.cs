@@ -89,6 +89,7 @@ namespace SampGlue
             _localPed = null;
         }
 
+        private int _frame;
         void Update()
         {
             if (_client == IntPtr.Zero) return;
@@ -111,7 +112,10 @@ namespace SampGlue
             }
             if (st == 5) {
                 PushLocalTransform();
-                Api.samp_push_state(_client);
+                int sent = Api.samp_push_state(_client);
+                if ((_frame++ % 300) == 0)
+                    Debug.Log("[samp] tick st=" + st + " pushed=" + sent +
+                              " remotes=" + Api.samp_remote_count(_client));
                 SyncRemotePeds();
             }
         }
