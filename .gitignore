@@ -1,2 +1,5 @@
 build/
 build-*/
+glue/bin/
+glue/obj/
+/tmp/

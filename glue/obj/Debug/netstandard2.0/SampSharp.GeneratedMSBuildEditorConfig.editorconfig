@@ -1,5 +1,0 @@
-is_global = true
-build_property.RootNamespace = SampGlue
-build_property.ProjectDir = /home/iqaruz/Projects/samp-native/glue/
-build_property.EnableComHosting = 
-build_property.EnableGeneratedComInterfaceComImportInterop = 

@@ -128,6 +128,13 @@ int samp_push_state(SampClient*) {
     }
     const auto idle = opensamp::net::makeIdleOnFoot(x, y, z, r);
     const auto aim = opensamp::net::makeIdleAim(x, y, z);
+    static int dbgCount = 0;
+    if (std::getenv("SAMP_DEBUG_PUSH") && dbgCount < 3) {
+        ++dbgCount;
+        std::printf("[push] pos=(%.2f, %.2f, %.2f) rot=%.2f hp=%u\n", x, y,
+                    z, r, (unsigned)idle.health);
+        fflush(stdout);
+    }
     const bool ok = g_client.SendOnFoot(idle) && g_client.SendAim(aim);
     return ok ? 1 : 0;
 }
