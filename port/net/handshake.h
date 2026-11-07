@@ -295,6 +295,11 @@ public:
     std::map<unsigned short, RemotePlayer> remotes_;
     std::map<unsigned short, RemoteVehicle> remoteVehicles_;
     unsigned syncInCount_ = 0;
+    unsigned msg207Total_ = 0;
+    unsigned msg207Bad_ = 0;
+    unsigned syncInCount() const { return syncInCount_; }
+    unsigned msg207Total() const { return msg207Total_; }
+    unsigned msg207Bad() const { return msg207Bad_; }
 
     static void OnClientMessage(RPCParameters* p)
     {
@@ -371,7 +376,6 @@ public:
     unsigned rpcHit(int id) const {
         return (id >= 0 && id < 256) ? rpcHits_[id] : 0;
     }
-    unsigned syncInCount() const { return syncInCount_; }
     const std::map<unsigned short, RemotePlayer>& remotes() const {
         return remotes_;
     }
@@ -430,10 +434,13 @@ public:
             else if (pid == ID_RPC)
                 ++rpcCount_;
             else if (pid == 207 && pkt->length > 1) {
+                ++msg207Total_;
                 RemotePlayer rp{};
                 if (decodePlayerSync(pkt->data, pkt->length * 8, rp)) {
                     remotes_[rp.id] = rp;
                     ++syncInCount_;
+                } else {
+                    ++msg207Bad_;
                 }
             } else if (pid == 200 && pkt->length > 1) {
                 RemoteVehicle rv{};

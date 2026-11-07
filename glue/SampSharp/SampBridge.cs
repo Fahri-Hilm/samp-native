@@ -109,6 +109,7 @@ namespace SampGlue
                 !_spawnRequested) {
                 Api.samp_request_spawn(_client);
                 _spawnRequested = true;
+                Debug.Log("[samp] spawn requested");
                 SpawnLocalPed();
             }
             if (st == 5) {

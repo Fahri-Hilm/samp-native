@@ -114,6 +114,9 @@ int main() {
     std::printf("A syncIn=%u B syncIn=%u\n", a.syncInCount(), b.syncInCount());
     dumpRemotes("A", a);
     dumpRemotes("B", b);
+    std::printf("A msg207 total=%u bad=%u | B msg207 total=%u bad=%u\n",
+                a.msg207Total(), a.msg207Bad(), b.msg207Total(),
+                b.msg207Bad());
     check(seesOther(a, b), "a-sees-b");
     check(seesOther(b, a), "b-sees-a");
     check(a.roster().count(b.playerId()) > 0, "a-roster-has-b");
