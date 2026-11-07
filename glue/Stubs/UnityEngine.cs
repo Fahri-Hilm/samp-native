@@ -32,15 +32,31 @@ namespace UnityEngine
     public class Object
     {
         public static void Destroy(Object o) { }
+        public static void DontDestroyOnLoad(Object o) { }
         public static T Instantiate<T>(T original) where T : Object =>
             original;
     }
 
     public class GameObject : Object
     {
+        public GameObject() { }
+        public GameObject(string name) { this.name = name; }
         public string name { get; set; }
         public Transform transform { get; } = new Transform();
         public T GetComponent<T>() where T : class => null;
+        public T AddComponent<T>() where T : class, new() => new T();
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class RuntimeInitializeOnLoadMethodAttribute : Attribute
+    {
+        public RuntimeInitializeOnLoadMethodAttribute() { }
+        public RuntimeInitializeOnLoadMethodAttribute(RuntimeInitializeLoadType t) { }
+    }
+
+    public enum RuntimeInitializeLoadType
+    {
+        BeforeSceneLoad = 1,
     }
 
     public class MonoBehaviour : Object

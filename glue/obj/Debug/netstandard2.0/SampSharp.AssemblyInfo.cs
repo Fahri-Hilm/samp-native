@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SampSharp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8af32c64a5a6ef5458bd0c06a2d03d14f033d831")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0e896fa2739232fc5f0644ae4c9f43c7b902338a")]
 [assembly: System.Reflection.AssemblyProductAttribute("SampSharp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SampSharp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

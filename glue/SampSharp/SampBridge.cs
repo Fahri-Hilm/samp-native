@@ -24,10 +24,20 @@ namespace SampGlue
 {
     public class SampBridge : MonoBehaviour
     {
-        [Header("SAMP server")]
+        [Header("SAMP server (or SAMP_HOST / SAMP_PORT / SAMP_NICK env)")]
         public string host = "127.0.0.1";
         public int port = 7777;
         public string nick = "NativeSAU";
+
+        // Self-bootstrap: no scene edit needed. Runs on player start,
+        // creates the bridge object if the scene doesn't have one.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void AutoStart()
+        {
+            var go = new GameObject("SAMP_Bridge");
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            go.AddComponent<SampBridge>();
+        }
 
         [Header("Local player")]
         public GameObject localPedRoot;
@@ -50,6 +60,14 @@ namespace SampGlue
 
         void OnEnable()
         {
+            string e;
+            if (!string.IsNullOrEmpty(e = System.Environment.GetEnvironmentVariable("SAMP_HOST")))
+                host = e;
+            if (!string.IsNullOrEmpty(e = System.Environment.GetEnvironmentVariable("SAMP_PORT")) &&
+                int.TryParse(e, out int p))
+                port = p;
+            if (!string.IsNullOrEmpty(e = System.Environment.GetEnvironmentVariable("SAMP_NICK")))
+                nick = e;
             _client = Api.samp_create();
             Api.samp_set_chat_cb(_client, _chatCb, IntPtr.Zero);
             Api.samp_set_relay_cb(_client, _relayCb, IntPtr.Zero);
