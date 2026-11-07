@@ -1,5 +1,6 @@
 // C ABI implementation over HandshakeClient (single global instance).
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -119,8 +120,17 @@ int samp_push_state(SampClient*) {
         opensamp::net::kOnFootSendRateMs);
     const auto& sp = g_client.spawn();
     float x = sp.pos[0], y = sp.pos[1], z = sp.pos[2], r = sp.rotation;
-    if (g_havePos &&
-        now - g_posAt < std::chrono::milliseconds(500)) {
+    // Test hook: force position near an observer. Format "x y z [rot]".
+    if (const char* fp = std::getenv("SAMP_FORCE_POS")) {
+        float fx = x, fy = y, fz = z, fr = r;
+        if (std::sscanf(fp, "%f %f %f %f", &fx, &fy, &fz, &fr) >= 3) {
+            x = fx;
+            y = fy;
+            z = fz;
+            r = fr;
+        }
+    } else if (g_havePos &&
+               now - g_posAt < std::chrono::milliseconds(500)) {
         x = g_lx;
         y = g_ly;
         z = g_lz;
