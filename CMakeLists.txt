@@ -44,6 +44,12 @@ target_include_directories(test_chat PRIVATE
   ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
 add_test(NAME chat COMMAND test_chat)
 
+add_executable(test_dialog tests/test_dialog.cpp)
+target_link_libraries(test_dialog PRIVATE samp_portable raknet)
+target_include_directories(test_dialog PRIVATE
+  ${SAMPRAKNET_DIR}/src ${SAMPRAKNET_DIR}/include)
+add_test(NAME dialog COMMAND test_dialog)
+
 add_executable(test_sync tests/test_sync.cpp)
 target_link_libraries(test_sync PRIVATE samp_portable raknet)
 target_include_directories(test_sync PRIVATE

@@ -101,6 +101,19 @@ int main(int argc, char** argv) {
             std::printf("[%08x] %s\n", ln.color, ln.text_utf8.c_str());
             fflush(stdout);
         }
+        // Incoming dialog.
+        static unsigned short shownDlg = 0xFFFF;
+        if (c.hasDialog() && c.dialog().id != shownDlg) {
+            shownDlg = c.dialog().id;
+            const auto& d = c.dialog();
+            std::printf("--- dialog %u style %u ---\n%s\n[%s] [%s]\n%s\n",
+                        d.id, d.style, d.title_utf8.c_str(),
+                        d.button1_utf8.c_str(), d.button2_utf8.c_str(),
+                        d.info_utf8.c_str());
+            std::puts("(reply: /dresp <0|1> [text], /dlist <n> for lists)");
+            fflush(stdout);
+        }
+        if (!c.hasDialog()) shownDlg = 0xFFFF;
         // 20 Hz sync from latest known spawn.
         const auto now = std::chrono::steady_clock::now();
         if (now >= next) {
@@ -143,6 +156,31 @@ int main(int argc, char** argv) {
                                         id, re.skin);
                     if (c.remotes().empty() && c.roster().empty())
                         std::puts("  (nobody seen yet)");
+                } else if (line.rfind("/dresp ", 0) == 0) {
+                    // /dresp <btn 0|1> [text...]
+                    int btn = 1;
+                    std::string txt;
+                    {
+                        std::string rest = line.substr(7);
+                        auto sp2 = rest.find(' ');
+                        std::string b = (sp2 == std::string::npos)
+                                           ? rest
+                                           : rest.substr(0, sp2);
+                        if (!b.empty() && (b[0] == '0' || b[0] == '1'))
+                            btn = b[0] - '0';
+                        if (sp2 != std::string::npos) txt = rest.substr(sp2 + 1);
+                    }
+                    if (!c.hasDialog()) {
+                        std::puts("(no active dialog)");
+                    } else if (!c.SendDialogResponse(
+                                   c.dialog().id,
+                                   static_cast<std::uint8_t>(btn), 0xFFFF,
+                                   txt.c_str())) {
+                        std::puts("dialog send failed");
+                    } else {
+                        std::printf("(dialog %u answered btn=%d)\n",
+                                    c.dialog().id, btn);
+                    }
                 } else if (!line.empty()) {
                     if (!c.SendChat(line.c_str()))
                         std::puts("chat send failed");

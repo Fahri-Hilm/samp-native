@@ -25,6 +25,7 @@
 #include "NetworkTypes.h"
 #include "SAMPAuth.h"
 #include "port/net/chat.h"
+#include "port/net/dialog.h"
 #include "port/net/sync.h"
 #include "port/net/sync_in.h"
 #include "port/net/vehicle.h"
@@ -204,6 +205,24 @@ public:
     static inline int s_rpcChat = 101;
     static inline int s_rpcClientMessage = 93;
     static inline int s_rpcDeath = 53;
+    static inline int s_rpcDialogBox = 61;
+    static inline int s_rpcDialogResponse = 62;
+    DialogData dialog_{};
+    bool hasDialog_ = false;
+
+    static void OnDialogBox(RPCParameters* p)
+    {
+        if (t_route) t_route->rpcHits_[61]++;
+        if (!t_route || !p || !p->input) return;
+        DialogData d{};
+        if (!decodeDialogBox(p->input, p->numberOfBitsOfData, d)) return;
+        if (d.close) {
+            t_route->hasDialog_ = false;
+            return;
+        }
+        t_route->dialog_ = std::move(d);
+        t_route->hasDialog_ = true;
+    }
     static inline int s_rpcServerJoin = 137;
 
     static void OnServerJoin(RPCParameters* p)
@@ -291,6 +310,19 @@ public:
         return client_->RPC(&s_rpcDeath, &bs, HIGH_PRIORITY, RELIABLE_ORDERED,
                             0, false, UNASSIGNED_NETWORK_ID, nullptr);
     }
+
+    bool SendDialogResponse(std::uint16_t id, std::uint8_t button,
+                            std::uint16_t listItem, const char* utf8)
+    {
+        if (!client_) return false;
+        RakNet::BitStream bs;
+        if (!encodeDialogResponse(id, button, listItem,
+                                 utf8 ? utf8 : "", bs))
+            return false;
+        return client_->RPC(&s_rpcDialogResponse, &bs, HIGH_PRIORITY,
+                            RELIABLE, 0, false, UNASSIGNED_NETWORK_ID,
+                            nullptr);
+    }
     std::vector<ChatLine> chatLines_;
     std::map<unsigned short, RemotePlayer> remotes_;
     std::map<unsigned short, RemoteVehicle> remoteVehicles_;
@@ -331,7 +363,7 @@ public:
     static void RegisterRange(RakClientInterface* c, std::index_sequence<I...>)
     {
         // 32/93/101/128/137/163 have dedicated decoders, skip thunks.
-        ((I != 32 && I != 93 && I != 101 && I != 128 && I != 137 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
+        ((I != 32 && I != 61 && I != 93 && I != 101 && I != 128 && I != 137 && I != 163 ? c->RegisterAsRemoteProcedureCall(&s_rpcIds[I], &Thunk<I>::handler) : (void)0), ...);
     }
 
     std::vector<std::pair<unsigned short, std::string>> relayLines_;
@@ -357,6 +389,7 @@ public:
         client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerAdd, &OnWorldPlayerAdd);
         client_->RegisterAsRemoteProcedureCall(&s_rpcWorldPlayerRemove, &OnWorldPlayerRemove);
         client_->RegisterAsRemoteProcedureCall(&s_rpcServerJoin, &OnServerJoin);
+        client_->RegisterAsRemoteProcedureCall(&s_rpcDialogBox, &OnDialogBox);
         RegisterRange(client_, std::make_index_sequence<256>{});
     }
     const std::vector<std::pair<unsigned short, std::string>>&
@@ -366,6 +399,8 @@ public:
     const std::map<unsigned short, RosterEntry>& roster() const {
         return roster_;
     }
+    bool hasDialog() const { return hasDialog_; }
+    const DialogData& dialog() const { return dialog_; }
 
     unsigned rpcTotal() const
     {
@@ -397,6 +432,8 @@ public:
         chatLines_.clear();
         relayLines_.clear();
         roster_.clear();
+        hasDialog_ = false;
+        dialog_ = DialogData{};
         remotes_.clear();
         syncInCount_ = 0;
         std::snprintf(nick_, sizeof(nick_), "%s", nick ? nick : "Native");
