@@ -94,6 +94,13 @@ SAMP_TEST_LIVE=1 SAMP_TEST_PORT=7777 ./build/test_handshake
    SELESAI lihat-pemain 2026-11-06: `port/net/sync_in.h` decode kompresi
    (quat/vector/nibble HP) + `test_twoplayer`: A(id0)↔B(id1) saling lihat
    di posisi spawn. `ctest` 9 test (rilis: `ctest 10/10` + live hijau).
+   SELESAI validasi server RP produksi 2026-11-07: handshake vs Nusa2 RP
+   (0.3.7-R2, 56 pemain) BERHASIL — AUTH_KEY, ACCEPT, 1280 RPC, chat
+   server diterima: "ditendang karena Plugin Voice tidak terdeteksi".
+   Protokol native lolos ke server produksi; yang menendang adalah cek
+   voice-plugin mereka (wajar — client tanpa voice). TIDAK dibuat:
+   spoofing cek plugin (fairness/R3). Main server itu hari ini = Wine +
+   sampvoice.asi asli. Voice native = fitur besar terpisah.
    SELESAI relay Unity 2026-11-07: player Unity SAU (native, build lokal)
    join + announced chat + push sync 20 Hz; observer independen melihat
    `id=0 pos=(-1290,2512) hp=100`. "Tidak relay" sebelumnya = jarak
